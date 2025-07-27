@@ -1,0 +1,154 @@
+package space.midnightthoughts.nordiccalendar.viewmodels
+
+import android.app.Application
+import android.content.ContentResolver
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import space.midnightthoughts.nordiccalendar.util.Calendar
+import space.midnightthoughts.nordiccalendar.util.CalendarData
+import space.midnightthoughts.nordiccalendar.util.Event
+
+class CalendarViewModel(app: Application) : AndroidViewModel(app) {
+    val isRefreshing = MutableStateFlow(false)
+    private val calendarData = CalendarData()
+    private val contentResolver: ContentResolver = app.contentResolver
+
+    private val _calendars = MutableStateFlow<List<Calendar>>(emptyList())
+    val calendars: StateFlow<List<Calendar>> = _calendars.asStateFlow()
+
+    private val _selectedCalendars = MutableStateFlow<List<Calendar>>(emptyList())
+    val selectedCalendars: StateFlow<List<Calendar>> = _selectedCalendars.asStateFlow()
+
+    private val _events = MutableStateFlow<List<Event>>(emptyList())
+    val events: StateFlow<List<Event>> = _events.asStateFlow()
+
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
+
+    private var startMillis: Long = getDefaultStartMillis(0)
+    private var endMillis: Long = getDefaultEndMillis(0)
+
+    init {
+        loadCalendars()
+    }
+
+    private fun loadCalendars() {
+        isRefreshing.value = true
+        viewModelScope.launch {
+            val allCalendars = calendarData.getCalendars(contentResolver)
+            _calendars.value = allCalendars
+            _selectedCalendars.value = allCalendars.filter { it.visible }
+            updateEvents()
+            isRefreshing.value = false
+        }
+    }
+
+    fun toggleCalendar(calendar: Calendar) {
+        val current = _selectedCalendars.value.toMutableList()
+        if (current.contains(calendar)) {
+            current.remove(calendar)
+        } else {
+            current.add(calendar)
+        }
+        _selectedCalendars.value = current
+        updateEvents()
+    }
+
+    fun setTab(tab: Int) {
+        _selectedTab.value = tab
+        startMillis = getDefaultStartMillis(tab)
+        endMillis = getDefaultEndMillis(tab)
+        updateEvents()
+    }
+
+    private fun getDefaultStartMillis(tab: Int): Long {
+        val cal = java.util.Calendar.getInstance()
+        when (tab) {
+            0 -> { // Monat
+                cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                cal.set(java.util.Calendar.MINUTE, 0)
+                cal.set(java.util.Calendar.SECOND, 0)
+                return cal.timeInMillis
+            }
+
+            1 -> { // Woche
+                cal.set(java.util.Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                cal.set(java.util.Calendar.MINUTE, 0)
+                cal.set(java.util.Calendar.SECOND, 0)
+                return cal.timeInMillis
+            }
+
+            2 -> { // Tag
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                cal.set(java.util.Calendar.MINUTE, 0)
+                cal.set(java.util.Calendar.SECOND, 0)
+                return cal.timeInMillis
+            }
+
+            else -> return cal.timeInMillis
+        }
+    }
+
+    private fun getDefaultEndMillis(tab: Int): Long {
+        val cal = java.util.Calendar.getInstance()
+        when (tab) {
+            0 -> { // Monat
+                cal.set(
+                    java.util.Calendar.DAY_OF_MONTH,
+                    cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+                )
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+                cal.set(java.util.Calendar.MINUTE, 59)
+                cal.set(java.util.Calendar.SECOND, 59)
+                return cal.timeInMillis
+            }
+
+            1 -> { // Woche
+                cal.set(java.util.Calendar.DAY_OF_WEEK, cal.firstDayOfWeek + 6)
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+                cal.set(java.util.Calendar.MINUTE, 59)
+                cal.set(java.util.Calendar.SECOND, 59)
+                return cal.timeInMillis
+            }
+
+            2 -> { // Tag
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+                cal.set(java.util.Calendar.MINUTE, 59)
+                cal.set(java.util.Calendar.SECOND, 59)
+                return cal.timeInMillis
+            }
+
+            else -> return cal.timeInMillis
+        }
+    }
+
+    fun updateEvents() {
+        isRefreshing.value = true
+        // Zeitintervall immer neu berechnen, damit Pull-to-Refresh in jedem Tab funktioniert
+        val tab = _selectedTab.value
+        startMillis = getDefaultStartMillis(tab)
+        endMillis = getDefaultEndMillis(tab)
+        Log.d(
+            "CalendarViewModel",
+            "Updating events for selected calendars: ${_selectedCalendars.value.map { it.name }}"
+        )
+        viewModelScope.launch {
+            val selectedIds = _selectedCalendars.value.map { it.id }
+            Log.d("CalendarViewModel", "Selected calendar IDs: $selectedIds")
+            _events.value = calendarData.getEventsForCalendars(
+                contentResolver,
+                selectedIds,
+                startMillis,
+                endMillis
+            )
+            isRefreshing.value = false
+        }
+    }
+}

@@ -14,6 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -34,6 +37,12 @@ fun AppScaffold(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val isBackButtonVisible by remember {
+        derivedStateOf {
+            navController.previousBackStackEntry != null
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -41,6 +50,7 @@ fun AppScaffold(
                 selectedDestination = selectedDestination,
                 calendarViewModel = calendarViewModel,
                 navController = navController,
+                drawerState = drawerState,
             )
         }
     ) {
@@ -49,10 +59,10 @@ fun AppScaffold(
                 TopAppBar(
                     title = { title ?: Text(stringResource(R.string.app_name)) },
                     navigationIcon = {
-                        if (navController.previousBackStackEntry != null) {
+                        if (isBackButtonVisible) {
                             IconButton(onClick = {
                                 scope.launch { drawerState.close() }
-                                navController.navigateUp()
+                                navController.popBackStack()
                             }) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,

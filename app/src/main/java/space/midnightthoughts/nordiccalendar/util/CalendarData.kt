@@ -13,7 +13,9 @@ data class Calendar(
     val accountName: String,
     val accountType: String,
     val syncEvents: Boolean,
-    val visible: Boolean
+    val visible: Boolean,
+    // TODO: Store this somewhere so it is kept across app restarts
+    val selected: Boolean = true
 )
 
 data class Event(

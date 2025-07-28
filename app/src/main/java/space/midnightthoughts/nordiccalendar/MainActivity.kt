@@ -33,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -231,9 +230,15 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
 @Composable
 fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostController) {
     val calendarViewModel: CalendarViewModel = viewModel()
-    val selectedTab by calendarViewModel.selectedTab.collectAsState()
-    val events by calendarViewModel.events.collectAsState()
-    val isRefreshing by calendarViewModel.isRefreshing.collectAsState()
+    val selectedTab = remember(calendarViewModel) {
+        calendarViewModel.selectedTab
+    }.collectAsState(initial = 0)
+    val events = remember(calendarViewModel) {
+        calendarViewModel.events
+    }.collectAsState(initial = emptyList())
+    val isRefreshing = remember(calendarViewModel) {
+        calendarViewModel.isRefreshing
+    }.collectAsState(initial = false)
     val tabArg = backStackEntry.arguments?.getInt("tab")
 
     LaunchedEffect(tabArg) {
@@ -257,11 +262,11 @@ fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostContro
         }
     ) { innerPadding ->
         CalendarScreen(
-            selectedTab = selectedTab,
+            selectedTab = selectedTab.value,
             onTabSelected = { calendarViewModel.setTab(it) },
-            events = events,
+            events = events.value,
             modifier = innerPadding,
-            isRefreshing = isRefreshing,
+            isRefreshing = isRefreshing.value,
             onRefresh = { calendarViewModel.updateEvents() },
             navController = navController,
             viewModel = calendarViewModel,

@@ -21,9 +21,6 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     private val _calendars = MutableStateFlow<List<Calendar>>(emptyList())
     val calendars: StateFlow<List<Calendar>> = _calendars.asStateFlow()
 
-    private val _selectedCalendars = MutableStateFlow<List<Calendar>>(emptyList())
-    val selectedCalendars: StateFlow<List<Calendar>> = _selectedCalendars.asStateFlow()
-
     private val _events = MutableStateFlow<List<Event>>(emptyList())
     val events: StateFlow<List<Event>> = _events.asStateFlow()
 
@@ -42,20 +39,23 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val allCalendars = calendarData.getCalendars(contentResolver)
             _calendars.value = allCalendars
-            _selectedCalendars.value = allCalendars.filter { it.visible }
             updateEvents()
             isRefreshing.value = false
         }
     }
 
     fun toggleCalendar(calendar: Calendar) {
-        val current = _selectedCalendars.value.toMutableList()
-        if (current.contains(calendar)) {
-            current.remove(calendar)
-        } else {
-            current.add(calendar)
+        // TODO: Store this somewhere so it is kept across app restarts
+        Log.d("CalendarViewModel", "Toggling calendar: ${calendar.name}, ID: ${calendar.id}")
+        
+        val updatedCalendars = _calendars.value.map {
+            if (it.id == calendar.id) {
+                it.copy(selected = !it.selected)
+            } else {
+                it
+            }
         }
-        _selectedCalendars.value = current
+        _calendars.value = updatedCalendars
         updateEvents()
     }
 
@@ -137,10 +137,12 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         endMillis = getDefaultEndMillis(tab)
         Log.d(
             "CalendarViewModel",
-            "Updating events for selected calendars: ${_selectedCalendars.value.map { it.name }}"
+            "Updating events for selected calendars: ${
+                _calendars.value.filter { it.selected }.map { it.name }
+            }"
         )
         viewModelScope.launch {
-            val selectedIds = _selectedCalendars.value.map { it.id }
+            val selectedIds = _calendars.value.filter { it.selected }.map { it.id }
             Log.d("CalendarViewModel", "Selected calendar IDs: $selectedIds")
             _events.value = calendarData.getEventsForCalendars(
                 contentResolver,
@@ -238,13 +240,14 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun updateEventsCustom() {
         isRefreshing.value = true
-        val tab = _selectedTab.value
         Log.d(
             "CalendarViewModel",
-            "Updating events for selected calendars: ${_selectedCalendars.value.map { it.name }}"
+            "Updating events for selected calendars: ${
+                _calendars.value.filter { it.selected }.map { it.name }
+            }"
         )
         viewModelScope.launch {
-            val selectedIds = _selectedCalendars.value.map { it.id }
+            val selectedIds = _calendars.value.filter { it.selected }.map { it.id }
             Log.d("CalendarViewModel", "Selected calendar IDs: $selectedIds")
             _events.value = calendarData.getEventsForCalendars(
                 contentResolver,

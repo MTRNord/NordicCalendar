@@ -39,6 +39,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -70,29 +71,37 @@ import java.util.Locale
 fun CalendarScreen(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
-    events: List<Event>,
     modifier: Modifier = Modifier,
-    isRefreshing: Boolean,
-    onRefresh: (() -> Unit),
     navController: NavController,
-    viewModel: CalendarViewModel, // <-- ViewModel als Parameter
-    startMillis: Long,
-    endMillis: Long
+    calendarViewModel: CalendarViewModel,
 ) {
+    val events = remember(calendarViewModel) {
+        calendarViewModel.events
+    }.collectAsState(initial = emptyList())
+    val startMillis = remember(calendarViewModel) {
+        calendarViewModel.startMillis
+    }
+    val endMillis = remember(calendarViewModel) {
+        calendarViewModel.endMillis
+    }
+    val isRefreshing = remember(calendarViewModel) {
+        calendarViewModel.isRefreshing
+    }.collectAsState(initial = false)
+
     Log.d(
         "CalendarScreen",
-        "Rendering with selectedTab: $selectedTab, events count: ${events.size}, isRefreshing: $isRefreshing"
+        "Rendering with selectedTab: $selectedTab, events count: ${events.value.size}, isRefreshing: $isRefreshing"
     )
     val pullToRefreshState = rememberPullToRefreshState()
     PullToRefreshBox(
         state = pullToRefreshState,
         modifier = modifier,
-        onRefresh = onRefresh,
-        isRefreshing = isRefreshing,
+        onRefresh = { calendarViewModel.updateEvents() },
+        isRefreshing = isRefreshing.value,
         indicator = {
             Indicator(
                 modifier = Modifier.align(Alignment.TopCenter),
-                isRefreshing = isRefreshing,
+                isRefreshing = isRefreshing.value,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 state = pullToRefreshState
@@ -108,178 +117,196 @@ fun CalendarScreen(
                 endMillis = endMillis,
                 onPrev = {
                     when (selectedTab) {
-                        0 -> viewModel.prevMonth()
-                        1 -> viewModel.prevWeek()
-                        2 -> viewModel.prevDay()
+                        0 -> calendarViewModel.prevMonth()
+                        1 -> calendarViewModel.prevWeek()
+                        2 -> calendarViewModel.prevDay()
                     }
                 },
                 onNext = {
                     when (selectedTab) {
-                        0 -> viewModel.nextMonth()
-                        1 -> viewModel.nextWeek()
-                        2 -> viewModel.nextDay()
+                        0 -> calendarViewModel.nextMonth()
+                        1 -> calendarViewModel.nextWeek()
+                        2 -> calendarViewModel.nextDay()
                     }
                 },
                 onToday = {
                     when (selectedTab) {
-                        0 -> viewModel.setTodayMonth()
-                        1 -> viewModel.setTodayWeek()
-                        2 -> viewModel.setTodayDay()
+                        0 -> calendarViewModel.setTodayMonth()
+                        1 -> calendarViewModel.setTodayWeek()
+                        2 -> calendarViewModel.setTodayDay()
                     }
                 }
             )
             Spacer(Modifier.height(8.dp))
-            if (events.isEmpty()) {
+            if (events.value.isEmpty()) {
                 Text(stringResource(R.string.no_events_found), modifier = Modifier.padding(16.dp))
             } else if (selectedTab == 2) {
-                val hourHeightDp = 64.dp
-                val timeColumnWidth = 64.dp
-                val density = LocalDensity.current
-                val hourHeightPx = with(density) { hourHeightDp.toPx() }
-                val dayStart = events.minOfOrNull { it.startTime }?.let {
-                    val cal = Calendar.getInstance()
-                    cal.timeInMillis = it
-                    cal.set(Calendar.HOUR_OF_DAY, 0)
-                    cal.set(Calendar.MINUTE, 0)
-                    cal.set(Calendar.SECOND, 0)
-                    cal.set(Calendar.MILLISECOND, 0)
-                    cal.timeInMillis
-                } ?: Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
-                val hourFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-                val scrollState = rememberScrollState()
-                val coroutineScope = rememberCoroutineScope()
-                var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-                // Aktualisiere die "Jetzt"-Linie jede Sekunde
-                LaunchedEffect(selectedTab) {
-                    while (selectedTab == 2) {
-                        now = System.currentTimeMillis()
-                        delay(1000)
-                    }
-                }
-                val nowMinutes = ((now - dayStart) / 60000f)
-                val nowOffsetY = ((nowMinutes + 30f) / 60f) * hourHeightPx
-                LaunchedEffect(selectedTab) {
-                    coroutineScope.launch {
-                        val visibleHeightPx = with(density) { 600.dp.toPx() }
-                        val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
-                        scrollState.scrollTo(scrollTo)
-                    }
-                }
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                ) {
-                    val maxWidthPx = with(density) { maxWidth.toPx() }
-                    val lineThickness = 4.dp
-                    val lineColor = MaterialTheme.colorScheme.error
-                    // Stunden-Divider
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        for (hour in 0..23) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .height(hourHeightDp)
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    hourFormat.format(Date(dayStart + hour * 60 * 60 * 1000)),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.width(timeColumnWidth)
-                                )
-                                HorizontalDivider(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                    fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
-                        val sorted = events.sortedBy { it.startTime }
-                        val active = mutableListOf<Pair<Event, Int>>() // Event, column
-                        val result =
-                            mutableListOf<Triple<Event, Int, Int>>() // Event, column, maxColumns
-                        for (event in sorted) {
-                            // Entferne abgelaufene Events
-                            active.removeAll { it.first.endTime <= event.startTime }
-                            // Finde freie Spalte
-                            val usedColumns = active.map { it.second }.toSet()
-                            val col =
-                                (0..active.size).firstOrNull { it !in usedColumns } ?: active.size
-                            active.add(event to col)
-                            // maxColumns = aktuelle Anzahl aktiver Events
-                            val maxColumns = active.size
-                            result.add(Triple(event, col, maxColumns))
-                        }
-                        return result
-                    }
-
-                    val eventColumns = assignColumns(events)
-                    eventColumns.forEach { (event, col, maxColumns) ->
-                        val startMinutes = ((event.startTime - dayStart) / 60000f)
-                        val endMinutes = ((event.endTime - dayStart) / 60000f)
-                        val offsetY = ((startMinutes + 30f) / 60f) * hourHeightPx
-                        val eventHeightPx = ((endMinutes - startMinutes) / 60f) * hourHeightPx
-                        val columnWidthPx =
-                            (maxWidthPx - with(density) { timeColumnWidth.toPx() }) / maxColumns
-                        val offsetX =
-                            (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
-                        val minCardHeightDp = 60.dp
-                        val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
-                        EventCard(
-                            event = event,
-                            isCompact = isCompact,
-                            hourFormat = hourFormat,
-                            onClick = { navController.navigate("eventDetails/${event.id}") },
-                            modifier = Modifier
-                                .width(with(density) { columnWidthPx.toDp() })
-                                .defaultMinSize(minHeight = 24.dp)
-                                .padding(end = 8.dp)
-                                .offset { IntOffset(offsetX, offsetY.toInt()) }
-                                .height(with(density) { eventHeightPx.toDp() })
-                        )
-                    }
-                    // "Jetzt"-Linie und Label, nur wenn im Tagesbereich
-                    if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .offset { IntOffset(0, nowOffsetY.toInt()) },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                stringResource(R.string.now),
-                                color = lineColor,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(start = 16.dp, end = 24.dp)
-                            )
-                            androidx.compose.foundation.Canvas(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(lineThickness)
-                                    .padding(end = 16.dp)
-                            ) {
-                                drawLine(
-                                    color = lineColor,
-                                    start = androidx.compose.ui.geometry.Offset(
-                                        0f,
-                                        size.height / 2
-                                    ),
-                                    end = androidx.compose.ui.geometry.Offset(
-                                        size.width,
-                                        size.height / 2
-                                    ),
-                                    strokeWidth = size.height,
-                                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                                )
-                            }
-                        }
-                    }
-                }
+                DayView(
+                    navController = navController,
+                    calendarViewModel = calendarViewModel
+                )
             } else {
-                EventList(events = events)
+                EventList(
+                    navController = navController,
+                    calendarViewModel = calendarViewModel
+                )
+            }
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+fun DayView(
+    navController: NavController,
+    calendarViewModel: CalendarViewModel,
+) {
+    val events = remember(calendarViewModel) {
+        calendarViewModel.events
+    }.collectAsState(initial = emptyList())
+
+    val hourHeightDp = 64.dp
+    val timeColumnWidth = 64.dp
+    val density = LocalDensity.current
+    val hourHeightPx = with(density) { hourHeightDp.toPx() }
+    val dayStart = events.value.minOfOrNull { it.startTime }?.let {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = it
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        cal.timeInMillis
+    } ?: Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val hourFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    // Aktualisiere die "Jetzt"-Linie jede Sekunde
+    LaunchedEffect(now) {
+        now = System.currentTimeMillis()
+        delay(1000)
+    }
+    val nowMinutes = ((now - dayStart) / 60000f)
+    val nowOffsetY = ((nowMinutes + 30f) / 60f) * hourHeightPx
+    LaunchedEffect(nowOffsetY) {
+        coroutineScope.launch {
+            val visibleHeightPx = with(density) { 600.dp.toPx() }
+            val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
+            scrollState.scrollTo(scrollTo)
+        }
+    }
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+    ) {
+        val maxWidthPx = with(density) { maxWidth.toPx() }
+        val lineThickness = 4.dp
+        val lineColor = MaterialTheme.colorScheme.error
+        // Stunden-Divider
+        Column(modifier = Modifier.fillMaxWidth()) {
+            for (hour in 0..23) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .height(hourHeightDp)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        hourFormat.format(Date(dayStart + hour * 60 * 60 * 1000)),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.width(timeColumnWidth)
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
+            val sorted = events.sortedBy { it.startTime }
+            val active = mutableListOf<Pair<Event, Int>>() // Event, column
+            val result =
+                mutableListOf<Triple<Event, Int, Int>>() // Event, column, maxColumns
+            for (event in sorted) {
+                // Entferne abgelaufene Events
+                active.removeAll { it.first.endTime <= event.startTime }
+                // Finde freie Spalte
+                val usedColumns = active.map { it.second }.toSet()
+                val col =
+                    (0..active.size).firstOrNull { it !in usedColumns } ?: active.size
+                active.add(event to col)
+                // maxColumns = aktuelle Anzahl aktiver Events
+                val maxColumns = active.size
+                result.add(Triple(event, col, maxColumns))
+            }
+            return result
+        }
+
+        val eventColumns = assignColumns(events.value)
+        eventColumns.forEach { (event, col, maxColumns) ->
+            val startMinutes = ((event.startTime - dayStart) / 60000f)
+            val endMinutes = ((event.endTime - dayStart) / 60000f)
+            val offsetY = ((startMinutes + 30f) / 60f) * hourHeightPx
+            val eventHeightPx = ((endMinutes - startMinutes) / 60f) * hourHeightPx
+            val columnWidthPx =
+                (maxWidthPx - with(density) { timeColumnWidth.toPx() }) / maxColumns
+            val offsetX =
+                (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
+            val minCardHeightDp = 60.dp
+            val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
+            EventCard(
+                event = event,
+                isCompact = isCompact,
+                hourFormat = hourFormat,
+                onClick = { navController.navigate("eventDetails/${event.id}") },
+                modifier = Modifier
+                    .width(with(density) { columnWidthPx.toDp() })
+                    .defaultMinSize(minHeight = 24.dp)
+                    .padding(end = 8.dp)
+                    .offset { IntOffset(offsetX, offsetY.toInt()) }
+                    .height(with(density) { eventHeightPx.toDp() })
+            )
+        }
+        // "Jetzt"-Linie und Label, nur wenn im Tagesbereich
+        if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset { IntOffset(0, nowOffsetY.toInt()) },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.now),
+                    color = lineColor,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = 16.dp, end = 24.dp)
+                )
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(lineThickness)
+                        .padding(end = 16.dp)
+                ) {
+                    drawLine(
+                        color = lineColor,
+                        start = androidx.compose.ui.geometry.Offset(
+                            0f,
+                            size.height / 2
+                        ),
+                        end = androidx.compose.ui.geometry.Offset(
+                            size.width,
+                            size.height / 2
+                        ),
+                        strokeWidth = size.height,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                }
             }
         }
     }
@@ -456,9 +483,16 @@ fun EventCardPreview() {
 }
 
 @Composable
-fun EventList(events: List<Event>) {
+fun EventList(
+    navController: NavController,
+    calendarViewModel: CalendarViewModel
+) {
+    val events = remember(calendarViewModel) {
+        calendarViewModel.events
+    }.collectAsState(initial = emptyList())
+
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(events) { event ->
+        items(events.value) { event ->
             Text(event.title, modifier = Modifier.padding(8.dp))
         }
     }

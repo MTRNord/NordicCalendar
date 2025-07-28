@@ -233,12 +233,6 @@ fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostContro
     val selectedTab = remember(calendarViewModel) {
         calendarViewModel.selectedTab
     }.collectAsState(initial = 0)
-    val events = remember(calendarViewModel) {
-        calendarViewModel.events
-    }.collectAsState(initial = emptyList())
-    val isRefreshing = remember(calendarViewModel) {
-        calendarViewModel.isRefreshing
-    }.collectAsState(initial = false)
     val tabArg = backStackEntry.arguments?.getInt("tab")
 
     LaunchedEffect(tabArg) {
@@ -264,20 +258,9 @@ fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostContro
         CalendarScreen(
             selectedTab = selectedTab.value,
             onTabSelected = { calendarViewModel.setTab(it) },
-            events = events.value,
             modifier = innerPadding,
-            isRefreshing = isRefreshing.value,
-            onRefresh = { calendarViewModel.updateEvents() },
             navController = navController,
-            viewModel = calendarViewModel,
-            startMillis = calendarViewModel.run {
-                javaClass.getDeclaredField("startMillis")
-                    .apply { isAccessible = true }.get(this) as Long
-            },
-            endMillis = calendarViewModel.run {
-                javaClass.getDeclaredField("endMillis")
-                    .apply { isAccessible = true }.get(this) as Long
-            }
+            calendarViewModel = calendarViewModel,
         )
     }
 }

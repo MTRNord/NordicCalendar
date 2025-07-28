@@ -27,8 +27,10 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
-    private var startMillis: Long = getDefaultStartMillis(0)
-    private var endMillis: Long = getDefaultEndMillis(0)
+    var startMillis: Long = getDefaultStartMillis(0)
+        private set
+    var endMillis: Long = getDefaultEndMillis(0)
+        private set
 
     init {
         loadCalendars()
@@ -47,7 +49,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleCalendar(calendar: Calendar) {
         // TODO: Store this somewhere so it is kept across app restarts
         Log.d("CalendarViewModel", "Toggling calendar: ${calendar.name}, ID: ${calendar.id}")
-        
+
         val updatedCalendars = _calendars.value.map {
             if (it.id == calendar.id) {
                 it.copy(selected = !it.selected)

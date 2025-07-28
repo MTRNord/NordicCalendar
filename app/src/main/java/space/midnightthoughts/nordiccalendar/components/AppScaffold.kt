@@ -55,7 +55,13 @@ fun AppScaffold(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { title ?: Text(stringResource(R.string.app_name)) },
+                    title = {
+                        if (title == null) {
+                            Text(stringResource(R.string.app_name))
+                        } else {
+                            Text(title)
+                        }
+                    },
                     navigationIcon = {
                         if (isBackButtonVisible) {
                             IconButton(onClick = {

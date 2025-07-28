@@ -1,22 +1,19 @@
 package space.midnightthoughts.nordiccalendar.viewmodels
 
 import android.app.Application
-import android.content.ContentResolver
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import space.midnightthoughts.nordiccalendar.data.CalendarRepository
 import space.midnightthoughts.nordiccalendar.util.Calendar
-import space.midnightthoughts.nordiccalendar.util.CalendarData
 import space.midnightthoughts.nordiccalendar.util.Event
 
 class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     val isRefreshing = MutableStateFlow(false)
-    private val calendarData = CalendarData()
-    private val contentResolver: ContentResolver = app.contentResolver
+    private val repository = CalendarRepository(app)
 
     private val _calendars = MutableStateFlow<List<Calendar>>(emptyList())
     val calendars: StateFlow<List<Calendar>> = _calendars.asStateFlow()
@@ -39,7 +36,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     private fun loadCalendars() {
         isRefreshing.value = true
         viewModelScope.launch {
-            val allCalendars = calendarData.getCalendars(contentResolver)
+            val allCalendars = repository.getCalendars()
             _calendars.value = allCalendars
             updateEvents()
             isRefreshing.value = false
@@ -47,18 +44,10 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun toggleCalendar(calendar: Calendar) {
-        // TODO: Store this somewhere so it is kept across app restarts
-        Log.d("CalendarViewModel", "Toggling calendar: ${calendar.name}, ID: ${calendar.id}")
-
-        val updatedCalendars = _calendars.value.map {
-            if (it.id == calendar.id) {
-                it.copy(selected = !it.selected)
-            } else {
-                it
-            }
+        viewModelScope.launch {
+            repository.setCalendarSelected(calendar.id, !calendar.selected)
+            loadCalendars()
         }
-        _calendars.value = updatedCalendars
-        updateEvents()
     }
 
     fun setTab(tab: Int) {
@@ -132,27 +121,21 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun updateEvents() {
-        isRefreshing.value = true
-        // Zeitintervall immer neu berechnen, damit Pull-to-Refresh in jedem Tab funktioniert
-        val tab = _selectedTab.value
-        startMillis = getDefaultStartMillis(tab)
-        endMillis = getDefaultEndMillis(tab)
-        Log.d(
-            "CalendarViewModel",
-            "Updating events for selected calendars: ${
-                _calendars.value.filter { it.selected }.map { it.name }
-            }"
-        )
         viewModelScope.launch {
-            val selectedIds = _calendars.value.filter { it.selected }.map { it.id }
-            Log.d("CalendarViewModel", "Selected calendar IDs: $selectedIds")
-            _events.value = calendarData.getEventsForCalendars(
-                contentResolver,
-                selectedIds,
-                startMillis,
-                endMillis
-            )
-            isRefreshing.value = false
+            isRefreshing.value = true
+            try {
+                val tab = _selectedTab.value
+                startMillis = getDefaultStartMillis(tab)
+                endMillis = getDefaultEndMillis(tab)
+                val selectedIds = _calendars.value.filter { it.selected }.map { it.id }
+                _events.value = repository.getEventsForCalendars(
+                    selectedIds,
+                    startMillis,
+                    endMillis
+                )
+            } finally {
+                isRefreshing.value = false
+            }
         }
     }
 
@@ -165,7 +148,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
         endMillis = cal.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 
     fun prevDay() {
@@ -177,7 +160,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
         endMillis = cal.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 
     fun nextWeek() {
@@ -190,7 +173,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
         endMillis = cal.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 
     fun prevWeek() {
@@ -203,7 +186,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
         endMillis = cal.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 
     fun nextMonth() {
@@ -220,7 +203,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
         endMillis = cal.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 
     fun prevMonth() {
@@ -237,30 +220,9 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
         endMillis = cal.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
-
-    private fun updateEventsCustom() {
-        isRefreshing.value = true
-        Log.d(
-            "CalendarViewModel",
-            "Updating events for selected calendars: ${
-                _calendars.value.filter { it.selected }.map { it.name }
-            }"
-        )
-        viewModelScope.launch {
-            val selectedIds = _calendars.value.filter { it.selected }.map { it.id }
-            Log.d("CalendarViewModel", "Selected calendar IDs: $selectedIds")
-            _events.value = calendarData.getEventsForCalendars(
-                contentResolver,
-                selectedIds,
-                startMillis,
-                endMillis
-            )
-            isRefreshing.value = false
-        }
-    }
-
+    
     fun setTodayWeek() {
         if (_selectedTab.value != 1) return
         val cal = java.util.Calendar.getInstance()
@@ -276,7 +238,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             set(java.util.Calendar.MINUTE, 59)
             set(java.util.Calendar.SECOND, 59)
         }.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 
     fun setTodayMonth() {
@@ -297,7 +259,7 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             set(java.util.Calendar.MINUTE, 59)
             set(java.util.Calendar.SECOND, 59)
         }.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 
     fun setTodayDay() {
@@ -313,6 +275,6 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             set(java.util.Calendar.MINUTE, 59)
             set(java.util.Calendar.SECOND, 59)
         }.timeInMillis
-        updateEventsCustom()
+        updateEvents()
     }
 }

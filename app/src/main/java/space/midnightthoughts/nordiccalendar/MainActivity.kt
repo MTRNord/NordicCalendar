@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,6 +56,7 @@ import space.midnightthoughts.nordiccalendar.components.AppScaffold
 import space.midnightthoughts.nordiccalendar.onboarding.OnBoardItem
 import space.midnightthoughts.nordiccalendar.onboarding.onBoardingData
 import space.midnightthoughts.nordiccalendar.screens.CalendarScreen
+import space.midnightthoughts.nordiccalendar.screens.EventDetailsView
 import space.midnightthoughts.nordiccalendar.ui.theme.NordicCalendarTheme
 import space.midnightthoughts.nordiccalendar.util.OnboardingPrefs
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
@@ -265,31 +265,6 @@ fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostContro
     }
 }
 
-
-@Composable
-fun EventDetailsView(
-    backStackEntry: NavBackStackEntry,
-    navController: NavHostController
-) {
-    val eventId = backStackEntry.arguments?.getString("eventId")
-    AppScaffold(
-        title = stringResource(R.string.event_details_title),
-        selectedDestination = "eventDetails",
-        navController = navController,
-    ) { innerPadding ->
-        Column(
-            modifier = innerPadding
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(stringResource(R.string.event_details, eventId ?: ""))
-            Spacer(modifier = Modifier.height(24.dp))
-            // Weitere Event-Details hier
-        }
-    }
-}
 
 @Composable
 fun SettingsView(navController: NavHostController) {

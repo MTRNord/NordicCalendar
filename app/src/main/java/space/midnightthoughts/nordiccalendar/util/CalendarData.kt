@@ -19,7 +19,8 @@ data class Calendar(
 )
 
 data class Event(
-    val id: Long,
+    val id: Long, // Instanz-ID (Instances._ID)
+    val eventId: Long, // Event-ID (Instances.EVENT_ID)
     val title: String,
     val description: String?,
     val startTime: Long,
@@ -117,6 +118,7 @@ class CalendarData {
 
         val INSTANCE_PROJECTION = arrayOf(
             CalendarContract.Instances._ID,
+            CalendarContract.Instances.EVENT_ID,
             CalendarContract.Instances.TITLE,
             CalendarContract.Instances.DESCRIPTION,
             CalendarContract.Instances.BEGIN,
@@ -127,14 +129,15 @@ class CalendarData {
             CalendarContract.Instances.ORGANIZER
         )
         val PROJECTION_ID_INDEX = 0
-        val PROJECTION_TITLE_INDEX = 1
-        val PROJECTION_DESCRIPTION_INDEX = 2
-        val PROJECTION_BEGIN_INDEX = 3
-        val PROJECTION_END_INDEX = 4
-        val PROJECTION_CALENDAR_ID_INDEX = 5
-        val PROJECTION_EVENT_LOCATION_INDEX = 6
-        val PROJECTION_ALL_DAY_INDEX = 7
-        val PROJECTION_ORGANIZER_INDEX = 8
+        val PROJECTION_EVENT_ID_INDEX = 1
+        val PROJECTION_TITLE_INDEX = 2
+        val PROJECTION_DESCRIPTION_INDEX = 3
+        val PROJECTION_BEGIN_INDEX = 4
+        val PROJECTION_END_INDEX = 5
+        val PROJECTION_CALENDAR_ID_INDEX = 6
+        val PROJECTION_EVENT_LOCATION_INDEX = 7
+        val PROJECTION_ALL_DAY_INDEX = 8
+        val PROJECTION_ORGANIZER_INDEX = 9
 
         val builder: Uri.Builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
         ContentUris.appendId(builder, startMillis)
@@ -149,6 +152,7 @@ class CalendarData {
         )
         while (cur?.moveToNext() == true) {
             val id = cur.getLong(PROJECTION_ID_INDEX)
+            val eventId = cur.getLong(PROJECTION_EVENT_ID_INDEX)
             val title = cur.getString(PROJECTION_TITLE_INDEX) ?: "No Title"
             val description = cur.getString(PROJECTION_DESCRIPTION_INDEX)
             val startTime = cur.getLong(PROJECTION_BEGIN_INDEX)
@@ -158,11 +162,10 @@ class CalendarData {
             val allDay = cur.getInt(PROJECTION_ALL_DAY_INDEX) == 1
             val organizer = cur.getString(PROJECTION_ORGANIZER_INDEX)
 
-            // Fetch attendees if needed (not included in this example for brevity)
-
             events.add(
                 Event(
                     id = id,
+                    eventId = eventId,
                     title = title,
                     description = description,
                     startTime = startTime,
@@ -234,5 +237,50 @@ class CalendarData {
                 "Fetched ${it.size} events for calendars: ${calendarIds.joinToString()}"
             )
         }
+    }
+
+    fun getEventById(contentResolver: ContentResolver, eventId: Long): Event? {
+        val INSTANCE_PROJECTION = arrayOf(
+            CalendarContract.Instances._ID,
+            CalendarContract.Instances.EVENT_ID,
+            CalendarContract.Instances.TITLE,
+            CalendarContract.Instances.DESCRIPTION,
+            CalendarContract.Instances.BEGIN,
+            CalendarContract.Instances.END,
+            CalendarContract.Instances.CALENDAR_ID,
+            CalendarContract.Instances.EVENT_LOCATION,
+            CalendarContract.Instances.ALL_DAY,
+            CalendarContract.Instances.ORGANIZER
+        )
+        val selection = "Instances.event_id = ?"
+        val selectionArgs = arrayOf(eventId.toString())
+        val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
+        val minMillis = 0L
+        val maxMillis = Long.MAX_VALUE
+        ContentUris.appendId(builder, minMillis)
+        ContentUris.appendId(builder, maxMillis)
+        val cur = contentResolver.query(
+            builder.build(),
+            INSTANCE_PROJECTION,
+            selection,
+            selectionArgs,
+            null
+        )
+        val event = if (cur?.moveToFirst() == true) {
+            Event(
+                id = cur.getLong(0),
+                eventId = cur.getLong(1),
+                title = cur.getString(2) ?: "No Title",
+                description = cur.getString(3),
+                startTime = cur.getLong(4),
+                endTime = cur.getLong(5),
+                calendarId = cur.getLong(6),
+                location = cur.getString(7),
+                allDay = cur.getInt(8) == 1,
+                organizer = cur.getString(9)
+            )
+        } else null
+        cur?.close()
+        return event
     }
 }

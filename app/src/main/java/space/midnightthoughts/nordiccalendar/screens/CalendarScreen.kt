@@ -195,7 +195,7 @@ fun DayView(
     }
     val nowMinutes = ((now - dayStart) / 60000f)
     val nowOffsetY = ((nowMinutes + 30f) / 60f) * hourHeightPx
-    LaunchedEffect(nowOffsetY) {
+    LaunchedEffect(Unit) {
         coroutineScope.launch {
             val visibleHeightPx = with(density) { 600.dp.toPx() }
             val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
@@ -264,7 +264,7 @@ fun DayView(
                 event = event,
                 isCompact = isCompact,
                 hourFormat = hourFormat,
-                onClick = { navController.navigate("eventDetails/${event.id}") },
+                onClick = { navController.navigate("eventDetails/${event.eventId}") },
                 modifier = Modifier
                     .width(with(density) { columnWidthPx.toDp() })
                     .defaultMinSize(minHeight = 24.dp)
@@ -466,6 +466,7 @@ fun EventCard(
 fun EventCardPreview() {
     val sampleEvent = Event(
         id = 1L,
+        eventId = 1L,
         title = "Beispiel Event",
         description = "Dies ist eine Beschreibung des Beispiel-Events.",
         startTime = System.currentTimeMillis(),
@@ -493,7 +494,10 @@ fun EventList(
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(events.value) { event ->
-            Text(event.title, modifier = Modifier.padding(8.dp))
+            Text(
+                event.title, modifier = Modifier
+                    .padding(8.dp)
+                    .clickable { navController.navigate("eventDetails/${event.eventId}") })
         }
     }
 }

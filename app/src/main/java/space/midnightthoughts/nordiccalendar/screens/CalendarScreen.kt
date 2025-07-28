@@ -78,12 +78,6 @@ fun CalendarScreen(
     val events = remember(calendarViewModel) {
         calendarViewModel.events
     }.collectAsState(initial = emptyList())
-    val startMillis = remember(calendarViewModel) {
-        calendarViewModel.startMillis
-    }
-    val endMillis = remember(calendarViewModel) {
-        calendarViewModel.endMillis
-    }
     val isRefreshing = remember(calendarViewModel) {
         calendarViewModel.isRefreshing
     }.collectAsState(initial = false)
@@ -113,8 +107,7 @@ fun CalendarScreen(
             // DateRangeHeader sollte direkt unter den Tabs stehen, IMMER sichtbar
             DateRangeHeader(
                 selectedTab = selectedTab,
-                startMillis = startMillis,
-                endMillis = endMillis,
+                calendarViewModel = calendarViewModel,
                 onPrev = {
                     when (selectedTab) {
                         0 -> calendarViewModel.prevMonth()
@@ -333,20 +326,30 @@ fun CalendarTabBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
 @Composable
 fun DateRangeHeader(
     selectedTab: Int,
-    startMillis: Long,
-    endMillis: Long,
+    calendarViewModel: CalendarViewModel,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit
 ) {
+    val startMillis = remember(calendarViewModel) {
+        calendarViewModel.startMillis
+    }.collectAsState(initial = System.currentTimeMillis())
+    val endMillis = remember(calendarViewModel) {
+        calendarViewModel.endMillis
+    }.collectAsState(initial = System.currentTimeMillis())
     val dateFormat = when (selectedTab) {
         0, 1 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         2 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         else -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     }
     val rangeText = when (selectedTab) {
-        0, 1 -> dateFormat.format(Date(startMillis)) + " – " + dateFormat.format(Date(endMillis))
-        2 -> dateFormat.format(Date(startMillis))
+        0, 1 -> dateFormat.format(Date(startMillis.value)) + " – " + dateFormat.format(
+            Date(
+                endMillis.value
+            )
+        )
+
+        2 -> dateFormat.format(Date(startMillis.value))
         else -> ""
     }
     val isToday = when (selectedTab) {
@@ -354,8 +357,8 @@ fun DateRangeHeader(
             val cal = Calendar.getInstance()
             val todayMonth = cal.get(Calendar.MONTH)
             val todayYear = cal.get(Calendar.YEAR)
-            val startCal = Calendar.getInstance().apply { timeInMillis = startMillis }
-            val endCal = Calendar.getInstance().apply { timeInMillis = endMillis }
+            val startCal = Calendar.getInstance().apply { timeInMillis = startMillis.value }
+            val endCal = Calendar.getInstance().apply { timeInMillis = endMillis.value }
             startCal.get(Calendar.MONTH) == todayMonth &&
                     startCal.get(Calendar.YEAR) == todayYear &&
                     endCal.get(Calendar.MONTH) == todayMonth &&
@@ -365,12 +368,12 @@ fun DateRangeHeader(
         1 -> {
             val cal = Calendar.getInstance()
             val today = cal.timeInMillis
-            today >= startMillis && today <= endMillis
+            today >= startMillis.value && today <= endMillis.value
         }
 
         2 -> {
             val cal = Calendar.getInstance()
-            val startDay = Calendar.getInstance().apply { timeInMillis = startMillis }
+            val startDay = Calendar.getInstance().apply { timeInMillis = startMillis.value }
             cal.get(Calendar.YEAR) == startDay.get(Calendar.YEAR) &&
                     cal.get(Calendar.DAY_OF_YEAR) == startDay.get(Calendar.DAY_OF_YEAR)
         }

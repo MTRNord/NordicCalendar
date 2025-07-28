@@ -126,7 +126,7 @@ fun SidebarDrawer(
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
             )
-            if (selectedCalendars.value !== null && !selectedCalendars.value!!.isEmpty()) {
+            if (selectedCalendars.value !== null && calendars?.value?.isEmpty() == false) {
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                 Spacer(Modifier.height(8.dp))

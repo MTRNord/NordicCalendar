@@ -24,10 +24,10 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
-    var startMillis: Long = getDefaultStartMillis(0)
-        private set
-    var endMillis: Long = getDefaultEndMillis(0)
-        private set
+    private val _startMillis = MutableStateFlow(getDefaultStartMillis(0))
+    val startMillis: StateFlow<Long> = _startMillis.asStateFlow()
+    private val _endMillis = MutableStateFlow(getDefaultEndMillis(0))
+    val endMillis: StateFlow<Long> = _endMillis.asStateFlow()
 
     init {
         loadCalendars()
@@ -52,8 +52,8 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setTab(tab: Int) {
         _selectedTab.value = tab
-        startMillis = getDefaultStartMillis(tab)
-        endMillis = getDefaultEndMillis(tab)
+        _startMillis.value = getDefaultStartMillis(tab)
+        _endMillis.value = getDefaultEndMillis(tab)
         updateEvents()
     }
 
@@ -124,14 +124,11 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             isRefreshing.value = true
             try {
-                val tab = _selectedTab.value
-                startMillis = getDefaultStartMillis(tab)
-                endMillis = getDefaultEndMillis(tab)
                 val selectedIds = _calendars.value.filter { it.selected }.map { it.id }
                 _events.value = repository.getEventsForCalendars(
                     selectedIds,
-                    startMillis,
-                    endMillis
+                    _startMillis.value,
+                    _endMillis.value
                 )
             } finally {
                 isRefreshing.value = false
@@ -141,60 +138,60 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
 
     fun nextDay() {
         if (_selectedTab.value != 2) return
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = _startMillis.value }
         cal.add(java.util.Calendar.DAY_OF_MONTH, 1)
-        startMillis = cal.timeInMillis
+        _startMillis.value = cal.timeInMillis
         cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
-        endMillis = cal.timeInMillis
+        _endMillis.value = cal.timeInMillis
         updateEvents()
     }
 
     fun prevDay() {
         if (_selectedTab.value != 2) return
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = _startMillis.value }
         cal.add(java.util.Calendar.DAY_OF_MONTH, -1)
-        startMillis = cal.timeInMillis
+        _startMillis.value = cal.timeInMillis
         cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
-        endMillis = cal.timeInMillis
+        _endMillis.value = cal.timeInMillis
         updateEvents()
     }
 
     fun nextWeek() {
         if (_selectedTab.value != 1) return
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = _startMillis.value }
         cal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
-        startMillis = cal.timeInMillis
+        _startMillis.value = cal.timeInMillis
         cal.add(java.util.Calendar.DAY_OF_WEEK, 6)
         cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
-        endMillis = cal.timeInMillis
+        _endMillis.value = cal.timeInMillis
         updateEvents()
     }
 
     fun prevWeek() {
         if (_selectedTab.value != 1) return
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = _startMillis.value }
         cal.add(java.util.Calendar.WEEK_OF_YEAR, -1)
-        startMillis = cal.timeInMillis
+        _startMillis.value = cal.timeInMillis
         cal.add(java.util.Calendar.DAY_OF_WEEK, 6)
         cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
-        endMillis = cal.timeInMillis
+        _endMillis.value = cal.timeInMillis
         updateEvents()
     }
 
     fun nextMonth() {
         if (_selectedTab.value != 0) return
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = _startMillis.value }
         cal.add(java.util.Calendar.MONTH, 1)
         cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
-        startMillis = cal.timeInMillis
+        _startMillis.value = cal.timeInMillis
         cal.set(
             java.util.Calendar.DAY_OF_MONTH,
             cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
@@ -202,16 +199,16 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
-        endMillis = cal.timeInMillis
+        _endMillis.value = cal.timeInMillis
         updateEvents()
     }
 
     fun prevMonth() {
         if (_selectedTab.value != 0) return
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = _startMillis.value }
         cal.add(java.util.Calendar.MONTH, -1)
         cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
-        startMillis = cal.timeInMillis
+        _startMillis.value = cal.timeInMillis
         cal.set(
             java.util.Calendar.DAY_OF_MONTH,
             cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
@@ -219,20 +216,20 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
         cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)
-        endMillis = cal.timeInMillis
+        _endMillis.value = cal.timeInMillis
         updateEvents()
     }
-    
+
     fun setTodayWeek() {
         if (_selectedTab.value != 1) return
         val cal = java.util.Calendar.getInstance()
-        startMillis = cal.apply {
+        _startMillis.value = cal.apply {
             set(java.util.Calendar.DAY_OF_WEEK, firstDayOfWeek)
             set(java.util.Calendar.HOUR_OF_DAY, 0)
             set(java.util.Calendar.MINUTE, 0)
             set(java.util.Calendar.SECOND, 0)
         }.timeInMillis
-        endMillis = cal.apply {
+        _endMillis.value = cal.apply {
             add(java.util.Calendar.DAY_OF_WEEK, 6)
             set(java.util.Calendar.HOUR_OF_DAY, 23)
             set(java.util.Calendar.MINUTE, 59)
@@ -244,13 +241,13 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     fun setTodayMonth() {
         if (_selectedTab.value != 0) return
         val cal = java.util.Calendar.getInstance()
-        startMillis = cal.apply {
+        _startMillis.value = cal.apply {
             set(java.util.Calendar.DAY_OF_MONTH, 1)
             set(java.util.Calendar.HOUR_OF_DAY, 0)
             set(java.util.Calendar.MINUTE, 0)
             set(java.util.Calendar.SECOND, 0)
         }.timeInMillis
-        endMillis = cal.apply {
+        _endMillis.value = cal.apply {
             set(
                 java.util.Calendar.DAY_OF_MONTH,
                 getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
@@ -265,12 +262,12 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     fun setTodayDay() {
         if (_selectedTab.value != 2) return
         val cal = java.util.Calendar.getInstance()
-        startMillis = cal.apply {
+        _startMillis.value = cal.apply {
             set(java.util.Calendar.HOUR_OF_DAY, 0)
             set(java.util.Calendar.MINUTE, 0)
             set(java.util.Calendar.SECOND, 0)
         }.timeInMillis
-        endMillis = cal.apply {
+        _endMillis.value = cal.apply {
             set(java.util.Calendar.HOUR_OF_DAY, 23)
             set(java.util.Calendar.MINUTE, 59)
             set(java.util.Calendar.SECOND, 59)

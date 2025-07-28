@@ -90,7 +90,10 @@ fun CalendarScreen(
     PullToRefreshBox(
         state = pullToRefreshState,
         modifier = modifier,
-        onRefresh = { calendarViewModel.updateEvents() },
+        onRefresh = {
+            // updateEvents gibt es nicht mehr im ViewModel, stattdessen Tab neu setzen, um Zeitraum zu triggern
+            calendarViewModel.setTab(selectedTab)
+        },
         isRefreshing = isRefreshing.value,
         indicator = {
             Indicator(

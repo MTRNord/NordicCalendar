@@ -25,31 +25,33 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.Destinations
 import space.midnightthoughts.nordiccalendar.R
-import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
+import space.midnightthoughts.nordiccalendar.viewmodels.SidebarDrawerViewModel
 
 @Composable
 fun SidebarDrawer(
-    calendarViewModel: CalendarViewModel?,
     navController: NavController,
     selectedDestination: String,
     drawerState: DrawerState
 ) {
-    val calendars = remember(calendarViewModel) {
-        calendarViewModel?.calendars
-    }?.collectAsState(initial = emptyList())
+    val viewModel: SidebarDrawerViewModel = viewModel()
+
+    val calendars = remember(viewModel) {
+        viewModel.calendars
+    }.collectAsState(initial = emptyList())
     val selectedCalendars = remember(calendars) {
         derivedStateOf {
-            calendars?.value?.filter { it.selected }
+            calendars.value.filter { it.selected }
         }
     }
     Log.d(
         "SidebarDrawer",
-        "Selected Calendars: ${selectedCalendars.value}, Calendars: ${calendars?.value}"
+        "Selected Calendars: ${selectedCalendars.value}, Calendars: ${calendars.value}"
     )
 
     val scope = rememberCoroutineScope()
@@ -126,31 +128,28 @@ fun SidebarDrawer(
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
             )
-            if (selectedCalendars.value !== null && calendars?.value?.isEmpty() == false) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.calendar_selection),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier =
-                        Modifier.padding(start = 8.dp, bottom = 8.dp, end = 8.dp, top = 8.dp)
-                )
-                Spacer(Modifier.height(8.dp))
-                calendars?.value?.forEach { calendar ->
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = selectedCalendars.value?.contains(calendar) == true,
-                            onCheckedChange = {
-                                scope.launch {
-                                    calendarViewModel?.toggleCalendar(calendar)
-                                }
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.calendar_selection),
+                style = MaterialTheme.typography.titleMedium,
+                modifier =
+                    Modifier.padding(start = 8.dp, bottom = 8.dp, end = 8.dp, top = 8.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            calendars.value.forEach { calendar ->
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = selectedCalendars.value.contains(calendar),
+                        onCheckedChange = {
+                            scope.launch {
+                                viewModel.toggleCalendar(calendar)
                             }
-                        )
-                        Text(calendar.name, modifier = Modifier.padding(start = 8.dp))
-                    }
+                        }
+                    )
+                    Text(calendar.name, modifier = Modifier.padding(start = 8.dp))
                 }
-
             }
         }
     }

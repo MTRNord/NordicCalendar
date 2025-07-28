@@ -245,7 +245,6 @@ fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostContro
         title = stringResource(R.string.app_name),
         selectedDestination = "calendar",
         navController = navController,
-        calendarViewModel = calendarViewModel,
         floatingActionButton = {
             FloatingActionButton(onClick = { /* Event hinzufügen (später) */ }) {
                 Icon(

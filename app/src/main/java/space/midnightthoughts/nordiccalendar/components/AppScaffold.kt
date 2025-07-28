@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.R
-import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +30,6 @@ fun AppScaffold(
     title: String? = null,
     selectedDestination: String,
     navController: NavController,
-    calendarViewModel: CalendarViewModel? = null,
     floatingActionButton: (@Composable () -> Unit)? = null,
     content: @Composable (Modifier) -> Unit
 ) {
@@ -49,7 +47,6 @@ fun AppScaffold(
         drawerContent = {
             SidebarDrawer(
                 selectedDestination = selectedDestination,
-                calendarViewModel = calendarViewModel,
                 navController = navController,
                 drawerState = drawerState,
             )

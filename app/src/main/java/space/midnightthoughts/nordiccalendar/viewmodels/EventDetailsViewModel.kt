@@ -15,7 +15,7 @@ class EventDetailsViewModel(
     app: Application,
     savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(app) {
-    private val repository = CalendarRepository(app)
+    private val repository = CalendarRepository.getInstance()
     private val _event = MutableStateFlow<Event?>(null)
     val event: StateFlow<Event?> = _event.asStateFlow()
 
@@ -28,7 +28,7 @@ class EventDetailsViewModel(
 
     private fun loadEvent(eventId: Long) {
         viewModelScope.launch {
-            val event = repository.getEventById(eventId)
+            val event = repository.getEventById(getApplication<Application>(), eventId)
             _event.value = event
         }
     }

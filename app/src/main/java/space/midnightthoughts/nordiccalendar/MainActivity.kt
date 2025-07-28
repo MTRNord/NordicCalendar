@@ -117,14 +117,12 @@ class MainActivity : ComponentActivity() {
                     }
                     composable(Destinations.Settings.route) { backStackEntry ->
                         SettingsView(
-                            navController = navController,
-                            backStackEntry = backStackEntry
+                            navController = navController
                         )
                     }
                     composable(Destinations.About.route) { backStackEntry ->
                         AboutView(
-                            navController = navController,
-                            backStackEntry = backStackEntry
+                            navController = navController
                         )
                     }
                 }
@@ -230,6 +228,8 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
 @Composable
 fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostController) {
     val calendarViewModel: CalendarViewModel = viewModel()
+
+
     val selectedTab = remember(calendarViewModel) {
         calendarViewModel.selectedTab
     }.collectAsState(initial = 0)
@@ -292,17 +292,13 @@ fun EventDetailsView(
 }
 
 @Composable
-fun SettingsView(navController: NavHostController, backStackEntry: NavBackStackEntry) {
-    val parentEntry = remember(backStackEntry) {
-        navController.getBackStackEntry(Destinations.Calendar.route)
-    }
-    val calendarViewModel: CalendarViewModel = viewModel(parentEntry)
+fun SettingsView(navController: NavHostController) {
     AppScaffold(
         title = stringResource(R.string.settings),
         selectedDestination = "settings",
         navController = navController,
-        calendarViewModel
-    ) { innerPadding ->
+
+        ) { innerPadding ->
         Column(
             modifier = innerPadding
                 .fillMaxSize()
@@ -317,16 +313,12 @@ fun SettingsView(navController: NavHostController, backStackEntry: NavBackStackE
 }
 
 @Composable
-fun AboutView(navController: NavHostController, backStackEntry: NavBackStackEntry) {
-    val parentEntry = remember(backStackEntry) {
-        navController.getBackStackEntry(Destinations.Calendar.route)
-    }
-    val calendarViewModel: CalendarViewModel = viewModel(parentEntry)
+fun AboutView(navController: NavHostController) {
+
     AppScaffold(
         title = stringResource(R.string.about) + " Nordic Calendar",
         selectedDestination = "about",
         navController = navController,
-        calendarViewModel
     ) { innerPadding ->
         Column(
             modifier = innerPadding

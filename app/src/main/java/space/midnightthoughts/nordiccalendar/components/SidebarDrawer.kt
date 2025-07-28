@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.Destinations
 import space.midnightthoughts.nordiccalendar.R
@@ -66,7 +67,17 @@ fun SidebarDrawer(
                     scope.launch {
                         drawerState.close()
                     }
-                    navController.navigate(Destinations.Calendar.route)
+                    navController.navigate(Destinations.Calendar.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                            saveState = true
+                        }
+                        // Avoid multiple copies of the same destination when
+                        // reselecting the same item
+                        launchSingleTop = true
+                        // Restore state when reselecting a previously selected item
+                        restoreState = true
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
@@ -78,7 +89,17 @@ fun SidebarDrawer(
                     scope.launch {
                         drawerState.close()
                     }
-                    navController.navigate(Destinations.Settings.route)
+                    navController.navigate(Destinations.Settings.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                            saveState = true
+                        }
+                        // Avoid multiple copies of the same destination when
+                        // reselecting the same item
+                        launchSingleTop = true
+                        // Restore state when reselecting a previously selected item
+                        restoreState = true
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
@@ -90,36 +111,47 @@ fun SidebarDrawer(
                     scope.launch {
                         drawerState.close()
                     }
-                    navController.navigate(Destinations.About.route)
+                    navController.navigate(Destinations.About.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                            saveState = true
+                        }
+                        // Avoid multiple copies of the same destination when
+                        // reselecting the same item
+                        launchSingleTop = true
+                        // Restore state when reselecting a previously selected item
+                        restoreState = true
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
             )
-            Spacer(Modifier.height(16.dp))
-            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.calendar_selection),
-                style = MaterialTheme.typography.titleMedium,
-                modifier =
-                    Modifier.padding(start = 8.dp, bottom = 8.dp, end = 8.dp, top = 8.dp)
-            )
-            Spacer(Modifier.height(8.dp))
-            calendars?.value?.forEach { calendar ->
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = selectedCalendars.value?.contains(calendar) == true,
-                        onCheckedChange = {
-                            scope.launch {
-                                calendarViewModel?.toggleCalendar(calendar)
+            if (selectedCalendars.value !== null && !selectedCalendars.value!!.isEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.calendar_selection),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier =
+                        Modifier.padding(start = 8.dp, bottom = 8.dp, end = 8.dp, top = 8.dp)
+                )
+                Spacer(Modifier.height(8.dp))
+                calendars?.value?.forEach { calendar ->
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = selectedCalendars.value?.contains(calendar) == true,
+                            onCheckedChange = {
+                                scope.launch {
+                                    calendarViewModel?.toggleCalendar(calendar)
+                                }
                             }
-                        }
-                    )
-                    Text(calendar.name, modifier = Modifier.padding(start = 8.dp))
+                        )
+                        Text(calendar.name, modifier = Modifier.padding(start = 8.dp))
+                    }
                 }
+
             }
-
-
         }
     }
 }

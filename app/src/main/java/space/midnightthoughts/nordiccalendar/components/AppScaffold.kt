@@ -37,9 +37,10 @@ fun AppScaffold(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val isDrawerDestination = selectedDestination in listOf("calendar", "settings", "about")
     val isBackButtonVisible by remember {
         derivedStateOf {
-            navController.previousBackStackEntry != null
+            navController.previousBackStackEntry != null && !isDrawerDestination
         }
     }
 

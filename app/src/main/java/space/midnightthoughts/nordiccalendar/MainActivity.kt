@@ -39,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -116,7 +117,7 @@ class MainActivity : ComponentActivity() {
                             didSetTab.value = true
                         }
                         AppScaffold(
-                            title = "NordicCalendar",
+                            title = stringResource(R.string.app_name),
                             calendars = calendars,
                             selectedCalendars = selectedCalendars,
                             selectedDestination = "calendar",
@@ -126,7 +127,10 @@ class MainActivity : ComponentActivity() {
                             onCalendarClick = { navController.navigate(Destinations.Calendar.route + "&tab=$selectedTab") },
                             floatingActionButton = {
                                 FloatingActionButton(onClick = { /* Event hinzufügen (später) */ }) {
-                                    Icon(Icons.Default.Add, contentDescription = "Event hinzufügen")
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = stringResource(R.string.event_add)
+                                    )
                                 }
                             }
                         ) { innerPadding ->
@@ -153,7 +157,7 @@ class MainActivity : ComponentActivity() {
                     composable(Destinations.EventDetails.route) { backStackEntry ->
                         val eventId = backStackEntry.arguments?.getString("eventId")
                         AppScaffold(
-                            title = "Event Details",
+                            title = stringResource(R.string.event_details_title),
                             calendars = emptyList(),
                             selectedCalendars = emptyList(),
                             selectedDestination = "eventDetails",
@@ -174,7 +178,7 @@ class MainActivity : ComponentActivity() {
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("Details für Event ID: $eventId")
+                                Text(stringResource(R.string.event_details, eventId ?: ""))
                                 Spacer(modifier = Modifier.height(24.dp))
                                 // Weitere Event-Details hier
                             }
@@ -185,7 +189,7 @@ class MainActivity : ComponentActivity() {
                         val calendars by calendarViewModel.calendars.collectAsState()
                         val selectedCalendars by calendarViewModel.selectedCalendars.collectAsState()
                         AppScaffold(
-                            title = "Einstellungen",
+                            title = stringResource(R.string.settings),
                             calendars = calendars,
                             selectedCalendars = selectedCalendars,
                             selectedDestination = "settings",
@@ -198,7 +202,10 @@ class MainActivity : ComponentActivity() {
                                 modifier = innerPadding
                                     .fillMaxSize()
                             ) {
-                                Text("Einstellungen", modifier = Modifier.padding(16.dp))
+                                Text(
+                                    stringResource(R.string.settings),
+                                    modifier = Modifier.padding(16.dp)
+                                )
                                 // Weitere Einstellungen hier
                             }
                         }
@@ -208,7 +215,7 @@ class MainActivity : ComponentActivity() {
                         val calendars by calendarViewModel.calendars.collectAsState()
                         val selectedCalendars by calendarViewModel.selectedCalendars.collectAsState()
                         AppScaffold(
-                            title = "Über NordicCalendar",
+                            title = stringResource(R.string.about) + " Nordic Calendar",
                             calendars = calendars,
                             selectedCalendars = selectedCalendars,
                             selectedDestination = "about",
@@ -221,7 +228,10 @@ class MainActivity : ComponentActivity() {
                                 modifier = innerPadding
                                     .fillMaxSize()
                             ) {
-                                Text("Über NordicCalendar", modifier = Modifier.padding(16.dp))
+                                Text(
+                                    stringResource(R.string.about) + " Nordic Calendar",
+                                    modifier = Modifier.padding(16.dp)
+                                )
                                 // Weitere Infos hier
                             }
                         }

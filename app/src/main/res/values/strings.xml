@@ -1,3 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Nordic Calendar</string>
+    <string name="app_name">NordicCalendar</string>
+    <string name="calendar">Kalender</string>
+    <string name="settings">Einstellungen</string>
+    <string name="about">Über</string>
+    <string name="calendar_selection">Kalenderauswahl</string>
+    <string name="no_events_found">Keine Events gefunden.</string>
+    <string name="event_add">Event hinzufügen</string>
+    <string name="event_details">Details für Event ID: %1$s</string>
+    <string name="event_details_title">Event Details</string>
+    <string name="today">Heute</string>
+    <string name="previous_period">Vorheriger Zeitraum</string>
+    <string name="next_period">Nächster Zeitraum</string>
+    <string name="menu">Menü</string>
+    <string name="back">Zurück</string>
+    <string name="onboarding_finish">Fertig</string>
+    <string name="onboarding_next">Weiter</string>
+    <string name="onboarding_intro_title">Willkommen bei NordicCalendar</string>
+    <string name="onboarding_intro_text">Dein Kalender für den Norden.</string>
+    <string name="onboarding_permissions_title">Berechtigungen benötigt</string>
+    <string name="onboarding_permissions_text">Um alle Funktionen zu nutzen, benötigt die App Zugriff auf deinen Kalender.</string>
+    <string name="onboarding_permissions_request">Bitte erlaube den Zugriff auf den Kalender.</string>
+    <string name="onboarding_permissions_button">Berechtigung anfragen</string>
+    <string name="tab_month">Monat</string>
+    <string name="tab_week">Woche</string>
+    <string name="tab_day">Tag</string>
+    <string name="now">Jetzt</string>
 </resources>
+

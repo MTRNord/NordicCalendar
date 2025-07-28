@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.util.Event
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 import java.text.SimpleDateFormat
@@ -128,7 +130,7 @@ fun CalendarScreen(
             )
             Spacer(Modifier.height(8.dp))
             if (events.isEmpty()) {
-                Text("Keine Events gefunden.", modifier = Modifier.padding(16.dp))
+                Text(stringResource(R.string.no_events_found), modifier = Modifier.padding(16.dp))
             } else if (selectedTab == 2) {
                 val hourHeightDp = 64.dp
                 val timeColumnWidth = 64.dp
@@ -248,7 +250,7 @@ fun CalendarScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Jetzt",
+                                stringResource(R.string.now),
                                 color = lineColor,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(start = 16.dp, end = 24.dp)
@@ -285,7 +287,11 @@ fun CalendarScreen(
 
 @Composable
 fun CalendarTabBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
-    val tabTitles = listOf("Monat", "Woche", "Tag")
+    val tabTitles = listOf(
+        stringResource(R.string.tab_month),
+        stringResource(R.string.tab_week),
+        stringResource(R.string.tab_day)
+    )
     TabRow(selectedTabIndex = selectedTab) {
         tabTitles.forEachIndexed { index, title ->
             Tab(
@@ -337,9 +343,7 @@ fun DateRangeHeader(
 
         2 -> {
             val cal = Calendar.getInstance()
-            val today = cal.timeInMillis
             val startDay = Calendar.getInstance().apply { timeInMillis = startMillis }
-            val endDay = Calendar.getInstance().apply { timeInMillis = endMillis }
             cal.get(Calendar.YEAR) == startDay.get(Calendar.YEAR) &&
                     cal.get(Calendar.DAY_OF_YEAR) == startDay.get(Calendar.DAY_OF_YEAR)
         }
@@ -356,7 +360,7 @@ fun DateRangeHeader(
         IconButton(onClick = onPrev) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Vorheriger Zeitraum"
+                contentDescription = stringResource(R.string.previous_period)
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -364,14 +368,14 @@ fun DateRangeHeader(
             if (!isToday) {
                 Spacer(Modifier.width(8.dp))
                 TextButton(onClick = onToday) {
-                    Text("Heute")
+                    Text(stringResource(R.string.today))
                 }
             }
         }
         IconButton(onClick = onNext) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Nächster Zeitraum"
+                contentDescription = stringResource(R.string.next_period)
             )
         }
     }

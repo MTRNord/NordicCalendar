@@ -16,13 +16,15 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
+import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(
-    title: String,
+    title: String? = null,
     calendars: List<Calendar>,
     selectedCalendars: List<Calendar>,
     selectedDestination: String,
@@ -62,18 +64,21 @@ fun AppScaffold(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(title) },
+                    title = { title ?: Text(stringResource(R.string.app_name)) },
                     navigationIcon = {
                         if (onBackClick != null) {
                             IconButton(onClick = onBackClick) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Zurück"
+                                    contentDescription = stringResource(R.string.back)
                                 )
                             }
                         } else {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menü")
+                                Icon(
+                                    Icons.Default.Menu,
+                                    contentDescription = stringResource(R.string.menu)
+                                )
                             }
                         }
                     }

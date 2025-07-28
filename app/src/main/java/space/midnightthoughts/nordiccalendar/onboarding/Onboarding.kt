@@ -16,6 +16,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,11 +24,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import space.midnightthoughts.nordiccalendar.R
 
 data class OnBoardModel(
     val imageRes: Int? = null,
-    val title: String,
-    val description: String,
+    val titleRes: Int,
+    val descriptionRes: Int,
     val permissionRequest: List<String> = emptyList(),
     val showPermissionRequest: Boolean = false
 )
@@ -35,14 +37,13 @@ data class OnBoardModel(
 val onBoardingData = listOf(
     // Explain the purpose of the app
     OnBoardModel(
-        title = "Welcome to Nordic Calendar",
-        description = "A simple open source calendar app for Android that helps you keep track of Nordic holidays and events."
+        titleRes = R.string.onboarding_intro_title,
+        descriptionRes = R.string.onboarding_intro_text
     ),
     // Ask for permissions
     OnBoardModel(
-        title = "Permissions Required",
-        description = "To provide you with the best experience, we need access to your calendar permissions. " +
-                "This allows us to add Nordic holidays and events directly to your calendar.",
+        titleRes = R.string.onboarding_permissions_title,
+        descriptionRes = R.string.onboarding_permissions_text,
         permissionRequest = listOf(
             android.Manifest.permission.READ_CALENDAR,
             android.Manifest.permission.WRITE_CALENDAR
@@ -80,7 +81,7 @@ fun OnBoardItem(page: OnBoardModel, hasPermissions: MutableState<Boolean>) {
             )
         }
         Text(
-            text = page.title, style = TextStyle(
+            text = stringResource(page.titleRes), style = TextStyle(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -88,7 +89,7 @@ fun OnBoardItem(page: OnBoardModel, hasPermissions: MutableState<Boolean>) {
             )
         )
         Text(
-            text = page.description,
+            text = stringResource(page.descriptionRes),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             style = TextStyle(
                 fontSize = 14.sp,
@@ -101,7 +102,7 @@ fun OnBoardItem(page: OnBoardModel, hasPermissions: MutableState<Boolean>) {
         // Show permission request if needed
         if (!permissionsState.allPermissionsGranted && page.showPermissionRequest) {
             Text(
-                text = "Please grant the required permissions to continue.",
+                text = stringResource(R.string.onboarding_permissions_request),
                 style = TextStyle(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
@@ -114,7 +115,7 @@ fun OnBoardItem(page: OnBoardModel, hasPermissions: MutableState<Boolean>) {
                 permissionsState.launchMultiplePermissionRequest()
             }) {
                 Text(
-                    text = "Request Permissions",
+                    text = stringResource(R.string.onboarding_permissions_button),
                     style = TextStyle(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Normal,

@@ -1,5 +1,6 @@
 package space.midnightthoughts.nordiccalendar.components
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,22 +17,32 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import kotlinx.coroutines.launch
+import space.midnightthoughts.nordiccalendar.Destinations
 import space.midnightthoughts.nordiccalendar.R
-import space.midnightthoughts.nordiccalendar.util.Calendar
+import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 
 @Composable
 fun SidebarDrawer(
-    calendars: List<Calendar>,
-    selectedCalendars: List<Calendar>,
-    onCalendarToggle: (Calendar) -> Unit,
-    onSettingsClick: () -> Unit,
-    onAboutClick: () -> Unit,
-    onCalendarClick: () -> Unit,
+    calendarViewModel: CalendarViewModel?,
+    navController: NavController,
     selectedDestination: String
 ) {
+    val selectedCalendars = calendarViewModel?.selectedCalendars?.collectAsState()
+    val calendars = calendarViewModel?.calendars?.collectAsState()
+    Log.d(
+        "SidebarDrawer",
+        "Selected Calendars: ${selectedCalendars?.value}, Calendars: ${calendars?.value}"
+    )
+
+    val scope = rememberCoroutineScope()
+
     ModalDrawerSheet {
         Column(
             modifier = Modifier
@@ -41,21 +52,27 @@ fun SidebarDrawer(
             NavigationDrawerItem(
                 label = { Text(stringResource(R.string.calendar)) },
                 selected = selectedDestination == "calendar",
-                onClick = onCalendarClick,
+                onClick = {
+                    navController.navigate(Destinations.Calendar.route)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
             )
             NavigationDrawerItem(
                 label = { Text(stringResource(R.string.settings)) },
                 selected = selectedDestination == "settings",
-                onClick = onSettingsClick,
+                onClick = {
+                    navController.navigate(Destinations.Settings.route)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
             )
             NavigationDrawerItem(
                 label = { Text(stringResource(R.string.about)) },
                 selected = selectedDestination == "about",
-                onClick = onAboutClick,
+                onClick = {
+                    navController.navigate(Destinations.About.route)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
             )
@@ -64,18 +81,26 @@ fun SidebarDrawer(
             Spacer(Modifier.height(8.dp))
             Text(
                 stringResource(R.string.calendar_selection),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier =
+                    Modifier.padding(start = 8.dp, bottom = 8.dp, end = 8.dp, top = 8.dp)
             )
             Spacer(Modifier.height(8.dp))
-            calendars.forEach { calendar ->
+            calendars?.value?.forEach { calendar ->
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Checkbox(
-                        checked = selectedCalendars.contains(calendar),
-                        onCheckedChange = { onCalendarToggle(calendar) }
+                        checked = selectedCalendars?.value?.contains(calendar) == true,
+                        onCheckedChange = {
+                            scope.launch {
+                                calendarViewModel.toggleCalendar(calendar)
+                            }
+                        }
                     )
                     Text(calendar.name, modifier = Modifier.padding(start = 8.dp))
                 }
             }
+
+
         }
     }
 }

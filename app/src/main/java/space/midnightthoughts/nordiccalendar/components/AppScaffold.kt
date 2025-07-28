@@ -17,23 +17,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.R
-import space.midnightthoughts.nordiccalendar.util.Calendar
+import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(
     title: String? = null,
-    calendars: List<Calendar>,
-    selectedCalendars: List<Calendar>,
     selectedDestination: String,
-    onCalendarToggle: (Calendar) -> Unit,
-    onSettingsClick: () -> Unit,
-    onAboutClick: () -> Unit,
-    onCalendarClick: () -> Unit,
+    navController: NavController,
+    calendarViewModel: CalendarViewModel? = null,
     floatingActionButton: (@Composable () -> Unit)? = null,
-    onBackClick: (() -> Unit)? = null,
     content: @Composable (Modifier) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -42,22 +38,9 @@ fun AppScaffold(
         drawerState = drawerState,
         drawerContent = {
             SidebarDrawer(
-                calendars = calendars,
-                selectedCalendars = selectedCalendars,
-                onCalendarToggle = onCalendarToggle,
-                onSettingsClick = {
-                    scope.launch { drawerState.close() }
-                    onSettingsClick()
-                },
-                onAboutClick = {
-                    scope.launch { drawerState.close() }
-                    onAboutClick()
-                },
-                onCalendarClick = {
-                    scope.launch { drawerState.close() }
-                    onCalendarClick()
-                },
-                selectedDestination = selectedDestination
+                selectedDestination = selectedDestination,
+                calendarViewModel = calendarViewModel,
+                navController = navController,
             )
         }
     ) {
@@ -66,8 +49,11 @@ fun AppScaffold(
                 TopAppBar(
                     title = { title ?: Text(stringResource(R.string.app_name)) },
                     navigationIcon = {
-                        if (onBackClick != null) {
-                            IconButton(onClick = onBackClick) {
+                        if (navController.previousBackStackEntry != null) {
+                            IconButton(onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigateUp()
+                            }) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = stringResource(R.string.back)

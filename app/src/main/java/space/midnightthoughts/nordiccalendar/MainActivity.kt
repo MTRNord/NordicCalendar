@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -103,143 +105,34 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     ) { backStackEntry ->
-                        val calendarViewModel: CalendarViewModel = viewModel()
-                        val selectedTab by calendarViewModel.selectedTab.collectAsState()
-                        val calendars by calendarViewModel.calendars.collectAsState()
-                        val selectedCalendars by calendarViewModel.selectedCalendars.collectAsState()
-                        val events by calendarViewModel.events.collectAsState()
-                        val isRefreshing by calendarViewModel.isRefreshing.collectAsState()
-                        val tabArg = backStackEntry.arguments?.getInt("tab")
-                        // Tab nur beim initialen Aufruf setzen, nicht bei jedem Recomposition
-                        val didSetTab = remember { mutableStateOf(false) }
-                        if (!didSetTab.value && tabArg != null) {
-                            calendarViewModel.setTab(tabArg)
-                            didSetTab.value = true
-                        }
-                        AppScaffold(
-                            title = stringResource(R.string.app_name),
-                            calendars = calendars,
-                            selectedCalendars = selectedCalendars,
-                            selectedDestination = "calendar",
-                            onCalendarToggle = { cal -> calendarViewModel.toggleCalendar(cal) },
-                            onSettingsClick = { navController.navigate(Destinations.Settings.route) },
-                            onAboutClick = { navController.navigate(Destinations.About.route) },
-                            onCalendarClick = { navController.navigate(Destinations.Calendar.route + "&tab=$selectedTab") },
-                            floatingActionButton = {
-                                FloatingActionButton(onClick = { /* Event hinzufügen (später) */ }) {
-                                    Icon(
-                                        Icons.Default.Add,
-                                        contentDescription = stringResource(R.string.event_add)
-                                    )
-                                }
-                            }
-                        ) { innerPadding ->
-                            CalendarScreen(
-                                selectedTab = selectedTab,
-                                onTabSelected = { calendarViewModel.setTab(it) },
-                                events = events,
-                                modifier = innerPadding,
-                                isRefreshing = isRefreshing,
-                                onRefresh = { calendarViewModel.updateEvents() },
-                                navController = navController,
-                                viewModel = calendarViewModel,
-                                startMillis = calendarViewModel.run {
-                                    javaClass.getDeclaredField("startMillis")
-                                        .apply { isAccessible = true }.get(this) as Long
-                                },
-                                endMillis = calendarViewModel.run {
-                                    javaClass.getDeclaredField("endMillis")
-                                        .apply { isAccessible = true }.get(this) as Long
-                                }
-                            )
-                        }
+                        CalendarView(
+                            backStackEntry = backStackEntry,
+                            navController = navController
+                        )
                     }
                     composable(Destinations.EventDetails.route) { backStackEntry ->
-                        val eventId = backStackEntry.arguments?.getString("eventId")
-                        AppScaffold(
-                            title = stringResource(R.string.event_details_title),
-                            calendars = emptyList(),
-                            selectedCalendars = emptyList(),
-                            selectedDestination = "eventDetails",
-                            onCalendarToggle = {},
-                            onSettingsClick = { navController.navigate(Destinations.Settings.route) },
-                            onAboutClick = { navController.navigate(Destinations.About.route) },
-                            onCalendarClick = { navController.navigate(Destinations.Calendar.route + "&tab=2") },
-                            onBackClick = {
-                                navController.navigate(Destinations.Calendar.route + "&tab=2") {
-                                    popUpTo(Destinations.EventDetails.route) { inclusive = true }
-                                }
-                            }
-                        ) { innerPadding ->
-                            Column(
-                                modifier = innerPadding
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(stringResource(R.string.event_details, eventId ?: ""))
-                                Spacer(modifier = Modifier.height(24.dp))
-                                // Weitere Event-Details hier
-                            }
-                        }
+                        EventDetailsView(
+                            backStackEntry = backStackEntry,
+                            navController = navController
+                        )
                     }
-                    composable(Destinations.Settings.route) {
-                        val calendarViewModel: CalendarViewModel = viewModel()
-                        val calendars by calendarViewModel.calendars.collectAsState()
-                        val selectedCalendars by calendarViewModel.selectedCalendars.collectAsState()
-                        AppScaffold(
-                            title = stringResource(R.string.settings),
-                            calendars = calendars,
-                            selectedCalendars = selectedCalendars,
-                            selectedDestination = "settings",
-                            onCalendarToggle = { cal -> calendarViewModel.toggleCalendar(cal) },
-                            onSettingsClick = { navController.navigate(Destinations.Settings.route) },
-                            onAboutClick = { navController.navigate(Destinations.About.route) },
-                            onCalendarClick = { navController.navigate(Destinations.Calendar.route) }
-                        ) { innerPadding ->
-                            Column(
-                                modifier = innerPadding
-                                    .fillMaxSize()
-                            ) {
-                                Text(
-                                    stringResource(R.string.settings),
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                                // Weitere Einstellungen hier
-                            }
-                        }
+                    composable(Destinations.Settings.route) { backStackEntry ->
+                        SettingsView(
+                            navController = navController,
+                            backStackEntry = backStackEntry
+                        )
                     }
-                    composable(Destinations.About.route) {
-                        val calendarViewModel: CalendarViewModel = viewModel()
-                        val calendars by calendarViewModel.calendars.collectAsState()
-                        val selectedCalendars by calendarViewModel.selectedCalendars.collectAsState()
-                        AppScaffold(
-                            title = stringResource(R.string.about) + " Nordic Calendar",
-                            calendars = calendars,
-                            selectedCalendars = selectedCalendars,
-                            selectedDestination = "about",
-                            onCalendarToggle = { cal -> calendarViewModel.toggleCalendar(cal) },
-                            onSettingsClick = { navController.navigate(Destinations.Settings.route) },
-                            onAboutClick = { navController.navigate(Destinations.About.route) },
-                            onCalendarClick = { navController.navigate(Destinations.Calendar.route) }
-                        ) { innerPadding ->
-                            Column(
-                                modifier = innerPadding
-                                    .fillMaxSize()
-                            ) {
-                                Text(
-                                    stringResource(R.string.about) + " Nordic Calendar",
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                                // Weitere Infos hier
-                            }
-                        }
+                    composable(Destinations.About.route) { backStackEntry ->
+                        AboutView(
+                            navController = navController,
+                            backStackEntry = backStackEntry
+                        )
                     }
                 }
             }
         }
     }
+
 }
 
 // Pass Navigation Actions: Create a function to handle navigation and pass it to screens.
@@ -331,6 +224,131 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
 
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostController) {
+    val calendarViewModel: CalendarViewModel = viewModel()
+    val selectedTab by calendarViewModel.selectedTab.collectAsState()
+    val events by calendarViewModel.events.collectAsState()
+    val isRefreshing by calendarViewModel.isRefreshing.collectAsState()
+    val tabArg = backStackEntry.arguments?.getInt("tab")
+
+    LaunchedEffect(tabArg) {
+        if (tabArg != null) {
+            calendarViewModel.setTab(tabArg)
+        }
+    }
+
+    AppScaffold(
+        title = stringResource(R.string.app_name),
+        selectedDestination = "calendar",
+        navController = navController,
+        calendarViewModel = calendarViewModel,
+        floatingActionButton = {
+            FloatingActionButton(onClick = { /* Event hinzufügen (später) */ }) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(R.string.event_add)
+                )
+            }
+        }
+    ) { innerPadding ->
+        CalendarScreen(
+            selectedTab = selectedTab,
+            onTabSelected = { calendarViewModel.setTab(it) },
+            events = events,
+            modifier = innerPadding,
+            isRefreshing = isRefreshing,
+            onRefresh = { calendarViewModel.updateEvents() },
+            navController = navController,
+            viewModel = calendarViewModel,
+            startMillis = calendarViewModel.run {
+                javaClass.getDeclaredField("startMillis")
+                    .apply { isAccessible = true }.get(this) as Long
+            },
+            endMillis = calendarViewModel.run {
+                javaClass.getDeclaredField("endMillis")
+                    .apply { isAccessible = true }.get(this) as Long
+            }
+        )
+    }
+}
+
+
+@Composable
+fun EventDetailsView(
+    backStackEntry: NavBackStackEntry,
+    navController: NavHostController
+) {
+    val eventId = backStackEntry.arguments?.getString("eventId")
+    AppScaffold(
+        title = stringResource(R.string.event_details_title),
+        selectedDestination = "eventDetails",
+        navController = navController,
+    ) { innerPadding ->
+        Column(
+            modifier = innerPadding
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(stringResource(R.string.event_details, eventId ?: ""))
+            Spacer(modifier = Modifier.height(24.dp))
+            // Weitere Event-Details hier
+        }
+    }
+}
+
+@Composable
+fun SettingsView(navController: NavHostController, backStackEntry: NavBackStackEntry) {
+    val parentEntry = remember(backStackEntry) {
+        navController.getBackStackEntry(Destinations.Calendar.route)
+    }
+    val calendarViewModel: CalendarViewModel = viewModel(parentEntry)
+    AppScaffold(
+        title = stringResource(R.string.settings),
+        selectedDestination = "settings",
+        navController = navController,
+        calendarViewModel
+    ) { innerPadding ->
+        Column(
+            modifier = innerPadding
+                .fillMaxSize()
+        ) {
+            Text(
+                stringResource(R.string.settings),
+                modifier = Modifier.padding(16.dp)
+            )
+            // Weitere Einstellungen hier
+        }
+    }
+}
+
+@Composable
+fun AboutView(navController: NavHostController, backStackEntry: NavBackStackEntry) {
+    val parentEntry = remember(backStackEntry) {
+        navController.getBackStackEntry(Destinations.Calendar.route)
+    }
+    val calendarViewModel: CalendarViewModel = viewModel(parentEntry)
+    AppScaffold(
+        title = stringResource(R.string.about) + " Nordic Calendar",
+        selectedDestination = "about",
+        navController = navController,
+        calendarViewModel
+    ) { innerPadding ->
+        Column(
+            modifier = innerPadding
+                .fillMaxSize()
+        ) {
+            Text(
+                stringResource(R.string.about) + " Nordic Calendar",
+                modifier = Modifier.padding(16.dp)
+            )
+            // Weitere Infos hier
         }
     }
 }

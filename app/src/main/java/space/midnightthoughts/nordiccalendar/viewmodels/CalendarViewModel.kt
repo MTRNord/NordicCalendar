@@ -255,4 +255,59 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             isRefreshing.value = false
         }
     }
+
+    fun setTodayWeek() {
+        if (_selectedTab.value != 1) return
+        val cal = java.util.Calendar.getInstance()
+        startMillis = cal.apply {
+            set(java.util.Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+        }.timeInMillis
+        endMillis = cal.apply {
+            add(java.util.Calendar.DAY_OF_WEEK, 6)
+            set(java.util.Calendar.HOUR_OF_DAY, 23)
+            set(java.util.Calendar.MINUTE, 59)
+            set(java.util.Calendar.SECOND, 59)
+        }.timeInMillis
+        updateEventsCustom()
+    }
+
+    fun setTodayMonth() {
+        if (_selectedTab.value != 0) return
+        val cal = java.util.Calendar.getInstance()
+        startMillis = cal.apply {
+            set(java.util.Calendar.DAY_OF_MONTH, 1)
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+        }.timeInMillis
+        endMillis = cal.apply {
+            set(
+                java.util.Calendar.DAY_OF_MONTH,
+                getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+            )
+            set(java.util.Calendar.HOUR_OF_DAY, 23)
+            set(java.util.Calendar.MINUTE, 59)
+            set(java.util.Calendar.SECOND, 59)
+        }.timeInMillis
+        updateEventsCustom()
+    }
+
+    fun setTodayDay() {
+        if (_selectedTab.value != 2) return
+        val cal = java.util.Calendar.getInstance()
+        startMillis = cal.apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+        }.timeInMillis
+        endMillis = cal.apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 23)
+            set(java.util.Calendar.MINUTE, 59)
+            set(java.util.Calendar.SECOND, 59)
+        }.timeInMillis
+        updateEventsCustom()
+    }
 }

@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -79,7 +81,6 @@ fun CalendarScreen(
         "CalendarScreen",
         "Rendering with selectedTab: $selectedTab, events count: ${events.size}, isRefreshing: $isRefreshing"
     )
-    val tabTitles = listOf("Monat", "Woche", "Tag")
     val pullToRefreshState = rememberPullToRefreshState()
     PullToRefreshBox(
         state = pullToRefreshState,
@@ -97,15 +98,34 @@ fun CalendarScreen(
         },
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            TabRow(selectedTabIndex = selectedTab) {
-                tabTitles.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { onTabSelected(index) },
-                        text = { Text(title) }
-                    )
+            CalendarTabBar(selectedTab = selectedTab, onTabSelected = onTabSelected)
+            // DateRangeHeader sollte direkt unter den Tabs stehen, IMMER sichtbar
+            DateRangeHeader(
+                selectedTab = selectedTab,
+                startMillis = startMillis,
+                endMillis = endMillis,
+                onPrev = {
+                    when (selectedTab) {
+                        0 -> viewModel.prevMonth()
+                        1 -> viewModel.prevWeek()
+                        2 -> viewModel.prevDay()
+                    }
+                },
+                onNext = {
+                    when (selectedTab) {
+                        0 -> viewModel.nextMonth()
+                        1 -> viewModel.nextWeek()
+                        2 -> viewModel.nextDay()
+                    }
+                },
+                onToday = {
+                    when (selectedTab) {
+                        0 -> viewModel.setTodayMonth()
+                        1 -> viewModel.setTodayWeek()
+                        2 -> viewModel.setTodayDay()
+                    }
                 }
-            }
+            )
             Spacer(Modifier.height(8.dp))
             if (events.isEmpty()) {
                 Text("Keine Events gefunden.", modifier = Modifier.padding(16.dp))
@@ -206,58 +226,18 @@ fun CalendarScreen(
                             (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
                         val minCardHeightDp = 60.dp
                         val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
-                        Card(
+                        EventCard(
+                            event = event,
+                            isCompact = isCompact,
+                            hourFormat = hourFormat,
+                            onClick = { navController.navigate("eventDetails/${event.id}") },
                             modifier = Modifier
                                 .width(with(density) { columnWidthPx.toDp() })
                                 .defaultMinSize(minHeight = 24.dp)
                                 .padding(end = 8.dp)
                                 .offset { IntOffset(offsetX, offsetY.toInt()) }
                                 .height(with(density) { eventHeightPx.toDp() })
-                                .clickable { navController.navigate("eventDetails/${event.id}") },
-                            colors = if (isCompact) {
-                                CardDefaults.outlinedCardColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
-                            } else CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            border = BorderStroke(
-                                1.dp,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .padding(
-                                        horizontal = 12.dp,
-                                        vertical = if (isCompact) 4.dp else 12.dp,
-                                    )
-                                    .fillMaxSize(),
-                                verticalArrangement = if (isCompact) Arrangement.Center else Arrangement.Top,
-                            ) {
-                                Text(
-                                    event.title,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge
-                                )
-                                if (!isCompact) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        hourFormat.format(Date(event.startTime)) + " - " + hourFormat.format(
-                                            Date(event.endTime)
-                                        ),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    if (!event.description.isNullOrBlank()) {
-                                        Text(
-                                            event.description,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        )
                     }
                     // "Jetzt"-Linie und Label, nur wenn im Tagesbereich
                     if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24) {
@@ -297,61 +277,185 @@ fun CalendarScreen(
                     }
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(events) { event ->
-                        Text(event.title, modifier = Modifier.padding(8.dp))
-                    }
-                }
+                EventList(events = events)
             }
-            // Zeitraum-Navigation und Titel
-            val dateFormat = when (selectedTab) {
-                0, 1 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-                2 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-                else -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-            }
-            val rangeText = when (selectedTab) {
-                0, 1 -> dateFormat.format(Date(startMillis)) + " – " + dateFormat.format(
-                    Date(
-                        endMillis
-                    )
-                )
+        }
+    }
+}
 
-                2 -> dateFormat.format(Date(startMillis))
-                else -> ""
+@Composable
+fun CalendarTabBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
+    val tabTitles = listOf("Monat", "Woche", "Tag")
+    TabRow(selectedTabIndex = selectedTab) {
+        tabTitles.forEachIndexed { index, title ->
+            Tab(
+                selected = selectedTab == index,
+                onClick = { onTabSelected(index) },
+                text = { Text(title) }
+            )
+        }
+    }
+}
+
+@Composable
+fun DateRangeHeader(
+    selectedTab: Int,
+    startMillis: Long,
+    endMillis: Long,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onToday: () -> Unit
+) {
+    val dateFormat = when (selectedTab) {
+        0, 1 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        2 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        else -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+    }
+    val rangeText = when (selectedTab) {
+        0, 1 -> dateFormat.format(Date(startMillis)) + " – " + dateFormat.format(Date(endMillis))
+        2 -> dateFormat.format(Date(startMillis))
+        else -> ""
+    }
+    val isToday = when (selectedTab) {
+        0 -> {
+            val cal = Calendar.getInstance()
+            val todayMonth = cal.get(Calendar.MONTH)
+            val todayYear = cal.get(Calendar.YEAR)
+            val startCal = Calendar.getInstance().apply { timeInMillis = startMillis }
+            val endCal = Calendar.getInstance().apply { timeInMillis = endMillis }
+            startCal.get(Calendar.MONTH) == todayMonth &&
+                    startCal.get(Calendar.YEAR) == todayYear &&
+                    endCal.get(Calendar.MONTH) == todayMonth &&
+                    endCal.get(Calendar.YEAR) == todayYear
+        }
+
+        1 -> {
+            val cal = Calendar.getInstance()
+            val today = cal.timeInMillis
+            today >= startMillis && today <= endMillis
+        }
+
+        2 -> {
+            val cal = Calendar.getInstance()
+            val today = cal.timeInMillis
+            val startDay = Calendar.getInstance().apply { timeInMillis = startMillis }
+            val endDay = Calendar.getInstance().apply { timeInMillis = endMillis }
+            cal.get(Calendar.YEAR) == startDay.get(Calendar.YEAR) &&
+                    cal.get(Calendar.DAY_OF_YEAR) == startDay.get(Calendar.DAY_OF_YEAR)
+        }
+
+        else -> false
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        IconButton(onClick = onPrev) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Vorheriger Zeitraum"
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(rangeText, style = MaterialTheme.typography.titleMedium)
+            if (!isToday) {
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = onToday) {
+                    Text("Heute")
+                }
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                IconButton(onClick = {
-                    when (selectedTab) {
-                        0 -> viewModel.prevMonth()
-                        1 -> viewModel.prevWeek()
-                        2 -> viewModel.prevDay()
-                    }
-                }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Vorheriger Zeitraum"
+        }
+        IconButton(onClick = onNext) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Nächster Zeitraum"
+            )
+        }
+    }
+}
+
+@Composable
+fun EventCard(
+    event: Event,
+    isCompact: Boolean,
+    hourFormat: SimpleDateFormat,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    Card(
+        modifier = modifier
+            .defaultMinSize(minHeight = 24.dp)
+            .padding(end = 8.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(
+            1.dp,
+            color = MaterialTheme.colorScheme.outline
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(
+                    horizontal = 12.dp,
+                    vertical = if (isCompact) 4.dp else 12.dp,
+                )
+                .fillMaxSize(),
+            verticalArrangement = if (isCompact) Arrangement.Center else Arrangement.Top,
+        ) {
+            Text(
+                event.title,
+                overflow = TextOverflow.Ellipsis,
+                style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge
+            )
+            if (!isCompact) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    hourFormat.format(Date(event.startTime)) + " - " + hourFormat.format(Date(event.endTime)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                if (!event.description.isNullOrBlank()) {
+                    Text(
+                        event.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                Text(rangeText, style = MaterialTheme.typography.titleMedium)
-                IconButton(onClick = {
-                    when (selectedTab) {
-                        0 -> viewModel.nextMonth()
-                        1 -> viewModel.nextWeek()
-                        2 -> viewModel.nextDay()
-                    }
-                }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Nächster Zeitraum"
-                    )
-                }
             }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun EventCardPreview() {
+    val sampleEvent = Event(
+        id = 1L,
+        title = "Beispiel Event",
+        description = "Dies ist eine Beschreibung des Beispiel-Events.",
+        startTime = System.currentTimeMillis(),
+        endTime = System.currentTimeMillis() + 3600000, // 1 Stunde später
+        calendarId = 1L,
+        location = "Beispielort",
+        allDay = false,
+        organizer = "Beispielorganisator"
+    )
+    EventCard(
+        event = sampleEvent,
+        isCompact = false,
+        hourFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    )
+}
+
+@Composable
+fun EventList(events: List<Event>) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(events) { event ->
+            Text(event.title, modifier = Modifier.padding(8.dp))
         }
     }
 }

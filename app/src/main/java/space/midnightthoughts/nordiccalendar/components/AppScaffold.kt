@@ -2,7 +2,7 @@ package space.midnightthoughts.nordiccalendar.components
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,7 +66,10 @@ fun AppScaffold(
                     navigationIcon = {
                         if (onBackClick != null) {
                             IconButton(onClick = onBackClick) {
-                                Icon(Icons.Filled.ArrowBack, contentDescription = "Zurück")
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Zurück"
+                                )
                             }
                         } else {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {

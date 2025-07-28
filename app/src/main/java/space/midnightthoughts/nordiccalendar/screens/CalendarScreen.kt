@@ -4,10 +4,12 @@ import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,10 +20,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -39,16 +46,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.util.Event
+import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +70,10 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
     isRefreshing: Boolean,
     onRefresh: (() -> Unit),
-    navController: NavController
+    navController: NavController,
+    viewModel: CalendarViewModel, // <-- ViewModel als Parameter
+    startMillis: Long,
+    endMillis: Long
 ) {
     Log.d(
         "CalendarScreen",
@@ -191,35 +204,57 @@ fun CalendarScreen(
                             (maxWidthPx - with(density) { timeColumnWidth.toPx() }) / maxColumns
                         val offsetX =
                             (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
+                        val minCardHeightDp = 60.dp
+                        val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
                         Card(
                             modifier = Modifier
                                 .width(with(density) { columnWidthPx.toDp() })
+                                .defaultMinSize(minHeight = 24.dp)
                                 .padding(end = 8.dp)
                                 .offset { IntOffset(offsetX, offsetY.toInt()) }
                                 .height(with(density) { eventHeightPx.toDp() })
                                 .clickable { navController.navigate("eventDetails/${event.id}") },
-                            colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            colors = if (isCompact) {
+                                CardDefaults.outlinedCardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            } else CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                             border = BorderStroke(
                                 1.dp,
                                 color = MaterialTheme.colorScheme.outline
                             )
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(event.title, style = MaterialTheme.typography.bodyLarge)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    hourFormat.format(Date(event.startTime)) + " - " + hourFormat.format(
-                                        Date(event.endTime)
-                                    ),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                if (!event.description.isNullOrBlank()) {
-                                    Text(
-                                        event.description,
-                                        style = MaterialTheme.typography.bodyMedium,
+                            Column(
+                                modifier = Modifier
+                                    .padding(
+                                        horizontal = 12.dp,
+                                        vertical = if (isCompact) 4.dp else 12.dp,
                                     )
+                                    .fillMaxSize(),
+                                verticalArrangement = if (isCompact) Arrangement.Center else Arrangement.Top,
+                            ) {
+                                Text(
+                                    event.title,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge
+                                )
+                                if (!isCompact) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        hourFormat.format(Date(event.startTime)) + " - " + hourFormat.format(
+                                            Date(event.endTime)
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    if (!event.description.isNullOrBlank()) {
+                                        Text(
+                                            event.description,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -266,6 +301,55 @@ fun CalendarScreen(
                     items(events) { event ->
                         Text(event.title, modifier = Modifier.padding(8.dp))
                     }
+                }
+            }
+            // Zeitraum-Navigation und Titel
+            val dateFormat = when (selectedTab) {
+                0, 1 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                2 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                else -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+            }
+            val rangeText = when (selectedTab) {
+                0, 1 -> dateFormat.format(Date(startMillis)) + " – " + dateFormat.format(
+                    Date(
+                        endMillis
+                    )
+                )
+
+                2 -> dateFormat.format(Date(startMillis))
+                else -> ""
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = {
+                    when (selectedTab) {
+                        0 -> viewModel.prevMonth()
+                        1 -> viewModel.prevWeek()
+                        2 -> viewModel.prevDay()
+                    }
+                }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Vorheriger Zeitraum"
+                    )
+                }
+                Text(rangeText, style = MaterialTheme.typography.titleMedium)
+                IconButton(onClick = {
+                    when (selectedTab) {
+                        0 -> viewModel.nextMonth()
+                        1 -> viewModel.nextWeek()
+                        2 -> viewModel.nextDay()
+                    }
+                }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Nächster Zeitraum"
+                    )
                 }
             }
         }

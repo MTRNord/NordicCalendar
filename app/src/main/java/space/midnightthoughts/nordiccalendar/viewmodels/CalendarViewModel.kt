@@ -151,4 +151,108 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             isRefreshing.value = false
         }
     }
+
+    fun nextDay() {
+        if (_selectedTab.value != 2) return
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        cal.add(java.util.Calendar.DAY_OF_MONTH, 1)
+        startMillis = cal.timeInMillis
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        endMillis = cal.timeInMillis
+        updateEventsCustom()
+    }
+
+    fun prevDay() {
+        if (_selectedTab.value != 2) return
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        cal.add(java.util.Calendar.DAY_OF_MONTH, -1)
+        startMillis = cal.timeInMillis
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        endMillis = cal.timeInMillis
+        updateEventsCustom()
+    }
+
+    fun nextWeek() {
+        if (_selectedTab.value != 1) return
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        cal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
+        startMillis = cal.timeInMillis
+        cal.add(java.util.Calendar.DAY_OF_WEEK, 6)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        endMillis = cal.timeInMillis
+        updateEventsCustom()
+    }
+
+    fun prevWeek() {
+        if (_selectedTab.value != 1) return
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        cal.add(java.util.Calendar.WEEK_OF_YEAR, -1)
+        startMillis = cal.timeInMillis
+        cal.add(java.util.Calendar.DAY_OF_WEEK, 6)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        endMillis = cal.timeInMillis
+        updateEventsCustom()
+    }
+
+    fun nextMonth() {
+        if (_selectedTab.value != 0) return
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        cal.add(java.util.Calendar.MONTH, 1)
+        cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
+        startMillis = cal.timeInMillis
+        cal.set(
+            java.util.Calendar.DAY_OF_MONTH,
+            cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        )
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        endMillis = cal.timeInMillis
+        updateEventsCustom()
+    }
+
+    fun prevMonth() {
+        if (_selectedTab.value != 0) return
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
+        cal.add(java.util.Calendar.MONTH, -1)
+        cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
+        startMillis = cal.timeInMillis
+        cal.set(
+            java.util.Calendar.DAY_OF_MONTH,
+            cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        )
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        endMillis = cal.timeInMillis
+        updateEventsCustom()
+    }
+
+    private fun updateEventsCustom() {
+        isRefreshing.value = true
+        val tab = _selectedTab.value
+        Log.d(
+            "CalendarViewModel",
+            "Updating events for selected calendars: ${_selectedCalendars.value.map { it.name }}"
+        )
+        viewModelScope.launch {
+            val selectedIds = _selectedCalendars.value.map { it.id }
+            Log.d("CalendarViewModel", "Selected calendar IDs: $selectedIds")
+            _events.value = calendarData.getEventsForCalendars(
+                contentResolver,
+                selectedIds,
+                startMillis,
+                endMillis
+            )
+            isRefreshing.value = false
+        }
+    }
 }

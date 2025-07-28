@@ -137,7 +137,16 @@ class MainActivity : ComponentActivity() {
                                 modifier = innerPadding,
                                 isRefreshing = isRefreshing,
                                 onRefresh = { calendarViewModel.updateEvents() },
-                                navController = navController
+                                navController = navController,
+                                viewModel = calendarViewModel,
+                                startMillis = calendarViewModel.run {
+                                    javaClass.getDeclaredField("startMillis")
+                                        .apply { isAccessible = true }.get(this) as Long
+                                },
+                                endMillis = calendarViewModel.run {
+                                    javaClass.getDeclaredField("endMillis")
+                                        .apply { isAccessible = true }.get(this) as Long
+                                }
                             )
                         }
                     }

@@ -64,6 +64,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -184,6 +185,92 @@ fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
     return result
 }
 
+@Composable
+private fun HourLines(
+    dayStart: Long,
+    hourHeightDp: Dp,
+    timeColumnWidth: Dp,
+    hourFormat: DateTimeFormatter
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        for (hour in 0..24) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .height(hourHeightDp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    Date(dayStart + hour * 60 * 60 * 1000).toInstant()
+                        .atZone(ZoneId.systemDefault()).toLocalDateTime().format(hourFormat),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.width(timeColumnWidth)
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun NowBar(
+    nowOffsetY: Float,
+    hourHeightPx: Float,
+    now: Long,
+    lineThickness: Dp,
+    lineColor: androidx.compose.ui.graphics.Color,
+    hourFormat: DateTimeFormatter
+) {
+    if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24.5f) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(0, nowOffsetY.toInt()) },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .background(
+                        color = lineColor,
+                        shape = MaterialTheme.shapes.small
+                    )
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    Date(now).toInstant()
+                        .atZone(ZoneId.systemDefault()).toLocalDateTime()
+                        .format(hourFormat),
+                    color = MaterialTheme.colorScheme.onError,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(lineThickness)
+                    .padding(end = 16.dp)
+            ) {
+                drawLine(
+                    color = lineColor,
+                    start = Offset(
+                        0f,
+                        size.height / 2
+                    ),
+                    end = Offset(
+                        size.width,
+                        size.height / 2
+                    ),
+                    strokeWidth = size.height,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+    }
+}
+
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun DayView(
@@ -227,30 +314,15 @@ fun DayView(
         val lineThickness = 4.dp
         val lineColor = MaterialTheme.colorScheme.error
 
-        // Stundenraster (eigene Ebene, recomposed nur bei Größenänderung)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            for (hour in 0..24) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .height(hourHeightDp)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        Date(dayStart.value + hour * 60 * 60 * 1000).toInstant()
-                            .atZone(ZoneId.systemDefault()).toLocalDateTime().format(hourFormat),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.width(timeColumnWidth)
-                    )
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                }
-            }
-        }
+        // Stundenraster
+        HourLines(
+            dayStart = dayStart.value,
+            hourHeightDp = hourHeightDp,
+            timeColumnWidth = timeColumnWidth,
+            hourFormat = hourFormat
+        )
 
-        // Events (eigene Ebene, recomposed nur bei Events- oder Größenänderung)
+        // Events (wie gehabt, optimiert)
         val eventColumns = remember(events.value, maxWidthPx) { assignColumns(events.value) }
         events.value.forEach { event ->
             val triple = eventColumns.find { it.first.id == event.id }
@@ -303,53 +375,15 @@ fun DayView(
             }
         }
 
-        // Jetzt-Linie (eigene Ebene)
-        if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24.5f) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset { IntOffset(0, nowOffsetY.toInt()) },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(start = 4.dp)
-                        .background(
-                            color = lineColor,
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        Date(now).toInstant()
-                            .atZone(ZoneId.systemDefault()).toLocalDateTime()
-                            .format(hourFormat),
-                        color = MaterialTheme.colorScheme.onError,
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(lineThickness)
-                        .padding(end = 16.dp)
-                ) {
-                    drawLine(
-                        color = lineColor,
-                        start = Offset(
-                            0f,
-                            size.height / 2
-                        ),
-                        end = Offset(
-                            size.width,
-                            size.height / 2
-                        ),
-                        strokeWidth = size.height,
-                        cap = StrokeCap.Round
-                    )
-                }
-            }
-        }
+        // Jetzt-Linie (optimiert als eigene Composable)
+        NowBar(
+            nowOffsetY = nowOffsetY,
+            hourHeightPx = hourHeightPx,
+            now = now,
+            lineThickness = lineThickness,
+            lineColor = lineColor,
+            hourFormat = hourFormat
+        )
     }
 }
 

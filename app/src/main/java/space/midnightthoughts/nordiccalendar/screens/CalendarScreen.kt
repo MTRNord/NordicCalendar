@@ -163,7 +163,7 @@ fun CalendarScreen(
     }
 }
 
-fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
+private fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
     data class ActiveEvent(val endTime: Long, val col: Int)
 
     val sorted = events.sortedBy { it.startTime }
@@ -219,10 +219,9 @@ private fun NowBar(
     nowOffsetY: Float,
     hourHeightPx: Float,
     now: Long,
-    lineThickness: Dp,
-    lineColor: androidx.compose.ui.graphics.Color,
     hourFormat: DateTimeFormatter
 ) {
+    val lineColor = MaterialTheme.colorScheme.error
     if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24.5f) {
         Row(
             modifier = Modifier
@@ -250,7 +249,7 @@ private fun NowBar(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(lineThickness)
+                    .height(4.dp)
                     .padding(end = 16.dp)
             ) {
                 drawLine(
@@ -273,11 +272,10 @@ private fun NowBar(
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun DayView(
+private fun DayView(
     navController: NavController,
     calendarViewModel: CalendarViewModel,
 ) {
-    val events = remember(calendarViewModel) { calendarViewModel.events }.collectAsState()
     val hourHeightDp = 64.dp
     val timeColumnWidth = 64.dp
     val density = LocalDensity.current
@@ -293,97 +291,100 @@ fun DayView(
         delay(1000)
     }
     val nowMinutes = ((now - dayStart.value) / 60000f)
-    val nowOffsetY = ((nowMinutes + 30f) / 60f) * hourHeightPx
-
-    val visibleHeightPx = with(density) { 600.dp.toPx() }
-    val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
-    val scrollState = rememberScrollState(initial = scrollTo)
+    val nowOffsetY = (nowMinutes / 60f) * hourHeightPx
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .semantics {
-                collectionInfo = CollectionInfo(
-                    rowCount = events.value.size,
-                    columnCount = 1,
-                )
-            }
     ) {
-        val maxWidthPx = with(density) { maxWidth.toPx() }
-        val lineThickness = 4.dp
-        val lineColor = MaterialTheme.colorScheme.error
+        val visibleHeightPx = with(density) { maxHeight.toPx() }
+        val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
+        val scrollState = rememberScrollState(initial = scrollTo)
 
-        // Stundenraster
-        HourLines(
-            dayStart = dayStart.value,
-            hourHeightDp = hourHeightDp,
-            timeColumnWidth = timeColumnWidth,
-            hourFormat = hourFormat
-        )
+        val events = remember(calendarViewModel) { calendarViewModel.events }.collectAsState()
 
-        // Events (wie gehabt, optimiert)
-        val eventColumns = remember(events.value, maxWidthPx) { assignColumns(events.value) }
-        events.value.forEach { event ->
-            val triple = eventColumns.find { it.first.id == event.id }
-            if (triple != null) {
-                val (event, col, maxColumns) = triple
-                val shownStart = maxOf(event.startTime, dayStart.value)
-                val shownEnd = minOf(event.endTime, dayEnd.value)
-                val startMinutes = ((shownStart - dayStart.value) / 60000f)
-                val endMinutes = ((shownEnd - dayStart.value) / 60000f)
-                val offsetY = (startMinutes / 60f) * hourHeightPx
-                val eventHeightPx = ((endMinutes - startMinutes) / 60f) * hourHeightPx
-                val columnWidthPx =
-                    (maxWidthPx - with(density) { timeColumnWidth.toPx() }) / maxColumns
-                val offsetX =
-                    (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
-                val minCardHeightDp = 60.dp
-                val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .semantics {
+                    collectionInfo = CollectionInfo(
+                        rowCount = events.value.size,
+                        columnCount = 1,
+                    )
+                }
+        ) {
+            val maxWidthPx = with(density) { maxWidth.toPx() }
 
-                val noTopCorners = event.startTime < dayStart.value
-                val noBottomCorners = event.endTime > dayEnd.value
+            // Stundenraster
+            HourLines(
+                dayStart = dayStart.value,
+                hourHeightDp = hourHeightDp,
+                timeColumnWidth = timeColumnWidth,
+                hourFormat = hourFormat
+            )
 
-                val showStartTimeAsMidnight = shownStart == dayStart.value
-                val showEndTimeAsMidnight = shownEnd == dayEnd.value
+            // Events (wie gehabt, optimiert)
+            val eventColumns = remember(events.value, maxWidthPx) { assignColumns(events.value) }
+            events.value.forEach { event ->
+                val triple = eventColumns.find { it.first.id == event.id }
+                if (triple != null) {
+                    val (event, col, maxColumns) = triple
+                    val shownStart = maxOf(event.startTime, dayStart.value)
+                    val shownEnd = minOf(event.endTime, dayEnd.value)
+                    val startMinutes = ((shownStart - dayStart.value) / 60000f)
+                    val endMinutes = ((shownEnd - dayStart.value) / 60000f)
+                    val offsetY = (startMinutes / 60f) * hourHeightPx + (hourHeightPx / 2f)
+                    val eventHeightPx = ((endMinutes - startMinutes) / 60f) * hourHeightPx
+                    val columnWidthPx =
+                        (maxWidthPx - with(density) { timeColumnWidth.toPx() }) / maxColumns
+                    val offsetX =
+                        (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
+                    val minCardHeightDp = 60.dp
+                    val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
 
-                key(event.id) {
-                    Box(
-                        modifier = Modifier
-                            .offset { IntOffset(offsetX, offsetY.toInt()) }
-                            .width(with(density) { columnWidthPx.toDp() })
-                            .height(with(density) { eventHeightPx.toDp() })
-                    ) {
-                        EventCard(
-                            event = event,
-                            isCompact = isCompact,
-                            onClick = {
-                                navController.navigate("eventDetails/${event.eventId}?tab=2") {
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            noTopCorners = noTopCorners,
-                            noBottomCorners = noBottomCorners,
-                            showStartTimeAsMidnight = showStartTimeAsMidnight,
-                            showEndTimeAsMidnight = showEndTimeAsMidnight,
-                            eventStartOverride = shownStart,
-                            eventEndOverride = shownEnd
-                        )
+                    val noTopCorners = event.startTime < dayStart.value
+                    val noBottomCorners = event.endTime > dayEnd.value
+
+                    val showStartTimeAsMidnight = shownStart == dayStart.value
+                    val showEndTimeAsMidnight = shownEnd == dayEnd.value
+
+                    key(event.id) {
+                        Box(
+                            modifier = Modifier
+                                .offset { IntOffset(offsetX, offsetY.toInt()) }
+                                .width(with(density) { columnWidthPx.toDp() })
+                                .height(with(density) { eventHeightPx.toDp() })
+                        ) {
+                            EventCard(
+                                event = event,
+                                isCompact = isCompact,
+                                onClick = {
+                                    navController.navigate("eventDetails/${event.eventId}?tab=2") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                noTopCorners = noTopCorners,
+                                noBottomCorners = noBottomCorners,
+                                showStartTimeAsMidnight = showStartTimeAsMidnight,
+                                showEndTimeAsMidnight = showEndTimeAsMidnight,
+                                eventStartOverride = shownStart,
+                                eventEndOverride = shownEnd
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Jetzt-Linie (optimiert als eigene Composable)
-        NowBar(
-            nowOffsetY = nowOffsetY,
-            hourHeightPx = hourHeightPx,
-            now = now,
-            lineThickness = lineThickness,
-            lineColor = lineColor,
-            hourFormat = hourFormat
-        )
+            // Jetzt-Linie (optimiert als eigene Composable)
+            NowBar(
+                nowOffsetY = nowOffsetY,
+                hourHeightPx = hourHeightPx,
+                now = now,
+                hourFormat = hourFormat
+            )
+        }
     }
 }
 

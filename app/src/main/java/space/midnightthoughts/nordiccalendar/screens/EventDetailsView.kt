@@ -19,11 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import sh.calvin.autolinktext.rememberAutoLinkText
@@ -38,27 +34,7 @@ fun EventDetailsView(
     backStackEntry: NavBackStackEntry,
     navController: NavHostController,
 ) {
-    val owner = LocalViewModelStoreOwner.current
-    val context =
-        androidx.compose.ui.platform.LocalContext.current.applicationContext as android.app.Application
-    val eventId = backStackEntry.arguments?.getString("eventId")
-    val viewModel: EventDetailsViewModel = if (owner != null && eventId != null) {
-        viewModel(
-            viewModelStoreOwner = owner,
-            key = "eventDetails_$eventId",
-            factory = object : ViewModelProvider.Factory {
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    @Suppress("UNCHECKED_CAST")
-                    return EventDetailsViewModel(
-                        app = context,
-                        savedStateHandle = SavedStateHandle(mapOf("eventId" to eventId))
-                    ) as T
-                }
-            }
-        )
-    } else {
-        throw IllegalStateException("ViewModelStoreOwner or eventId is null")
-    }
+    val viewModel: EventDetailsViewModel = hiltViewModel()
     val event = remember(viewModel) {
         viewModel.event
     }.collectAsState(initial = null)

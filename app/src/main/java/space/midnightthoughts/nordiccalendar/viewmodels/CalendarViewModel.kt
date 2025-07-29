@@ -1,18 +1,23 @@
 package space.midnightthoughts.nordiccalendar.viewmodels
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import android.content.Context
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import space.midnightthoughts.nordiccalendar.data.CalendarRepository
+import javax.inject.Inject
 
-class CalendarViewModel(app: Application) : AndroidViewModel(app) {
-    private val repository = CalendarRepository.getInstance()
-
+@HiltViewModel
+class CalendarViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val repository: CalendarRepository
+) : ViewModel() {
     val events = repository.eventsFlow.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
@@ -27,7 +32,6 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         // Repository initialisieren (Context benötigt)
-        repository.initialize(app)
         setTab(0)
     }
 

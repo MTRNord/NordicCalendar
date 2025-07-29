@@ -43,7 +43,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -51,6 +51,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.components.AppScaffold
 import space.midnightthoughts.nordiccalendar.onboarding.OnBoardItem
@@ -69,6 +70,7 @@ sealed class Destinations(val route: String) {
     object EventDetails : Destinations("eventDetails/{eventId}")
 }
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -226,9 +228,11 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
 }
 
 @Composable
-fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostController) {
-    val calendarViewModel: CalendarViewModel = viewModel()
-
+fun CalendarView(
+    backStackEntry: NavBackStackEntry,
+    navController: NavHostController
+) {
+    val calendarViewModel: CalendarViewModel = hiltViewModel()
 
     val selectedTab = remember(calendarViewModel) {
         calendarViewModel.selectedTab
@@ -259,7 +263,6 @@ fun CalendarView(backStackEntry: NavBackStackEntry, navController: NavHostContro
             onTabSelected = { calendarViewModel.setTab(it) },
             modifier = innerPadding,
             navController = navController,
-            calendarViewModel = calendarViewModel,
         )
     }
 }

@@ -25,7 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import kotlinx.coroutines.launch
@@ -39,7 +39,7 @@ fun SidebarDrawer(
     selectedDestination: String,
     drawerState: DrawerState
 ) {
-    val viewModel: SidebarDrawerViewModel = viewModel()
+    val viewModel: SidebarDrawerViewModel = hiltViewModel()
 
     val calendars = remember(viewModel) {
         viewModel.calendars

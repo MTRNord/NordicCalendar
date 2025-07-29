@@ -2,6 +2,7 @@ package space.midnightthoughts.nordiccalendar.data
 
 import android.content.Context
 import androidx.core.content.edit
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,16 +13,17 @@ import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.util.Calendar
 import space.midnightthoughts.nordiccalendar.util.CalendarData
 import space.midnightthoughts.nordiccalendar.util.Event
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class CalendarRepository private constructor() {
+@Singleton
+class CalendarRepository @Inject constructor(@ApplicationContext context: Context) {
     private val calendarData = CalendarData()
 
-    // StateFlow für Kalenderliste
     private val _calendarsFlow = MutableStateFlow<List<Calendar>>(emptyList())
     val calendarsFlow: StateFlow<List<Calendar>> = _calendarsFlow.asStateFlow()
     private val repoScope = CoroutineScope(Dispatchers.IO)
 
-    // StateFlow für Zeitbereich und Events
     private val _startMillis = MutableStateFlow(System.currentTimeMillis())
     val startMillis: StateFlow<Long> = _startMillis.asStateFlow()
     private val _endMillis = MutableStateFlow(System.currentTimeMillis())
@@ -29,8 +31,7 @@ class CalendarRepository private constructor() {
     private val _eventsFlow = MutableStateFlow<List<Event>>(emptyList())
     val eventsFlow: StateFlow<List<Event>> = _eventsFlow.asStateFlow()
 
-    // Context muss jetzt bei jedem Aufruf übergeben werden
-    fun initialize(context: Context) {
+    init {
         loadCalendarsToFlow(context)
         repoScope.launch {
             combine(_calendarsFlow, _startMillis, _endMillis) { calendars, start, end ->
@@ -94,15 +95,5 @@ class CalendarRepository private constructor() {
 
     fun getEventById(context: Context, eventId: Long): Event? {
         return calendarData.getEventById(context.contentResolver, eventId)
-    }
-
-    companion object {
-        @Volatile
-        private var INSTANCE: CalendarRepository? = null
-        fun getInstance(): CalendarRepository {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: CalendarRepository().also { INSTANCE = it }
-            }
-        }
     }
 }

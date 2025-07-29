@@ -16,7 +16,8 @@ hilt = "2.57"
 ksp = "2.2.0-2.0.2"
 hiltNavigationCompose = "1.2.0"
 maplibreCompose = "0.10.4"
-ktorVersion = "3.2.2"
+ktorVersion = "3.2.3"
+preferenceVersion = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,7 @@ ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-conte
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktorVersion" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktorVersion" }
+compose-preference = { group = "me.zhanghai.compose.preference", name = "preference", version.ref = "preferenceVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

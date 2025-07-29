@@ -44,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -189,20 +190,13 @@ fun DayView(
     navController: NavController,
     calendarViewModel: CalendarViewModel,
 ) {
-    val events = remember(calendarViewModel) {
-        calendarViewModel.events
-    }.collectAsState()
-
+    val events = remember(calendarViewModel) { calendarViewModel.events }.collectAsState()
     val hourHeightDp = 64.dp
     val timeColumnWidth = 64.dp
     val density = LocalDensity.current
     val hourHeightPx = with(density) { hourHeightDp.toPx() }
-    val dayStart = remember(calendarViewModel) {
-        calendarViewModel.startMillis
-    }.collectAsState()
-    val dayEnd = remember(calendarViewModel) {
-        calendarViewModel.endMillis
-    }.collectAsState()
+    val dayStart = remember(calendarViewModel) { calendarViewModel.startMillis }.collectAsState()
+    val dayEnd = remember(calendarViewModel) { calendarViewModel.endMillis }.collectAsState()
     val appLocale = getCurrentAppLocale(LocalContext.current)
     val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -232,12 +226,13 @@ fun DayView(
         val maxWidthPx = with(density) { maxWidth.toPx() }
         val lineThickness = 4.dp
         val lineColor = MaterialTheme.colorScheme.error
-        // Stunden-Divider
+
+        // Stundenraster (eigene Ebene, recomposed nur bei Größenänderung)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            for (hour in 0..24) { // Bis einschließlich 24, um 00:00 am Folgetag anzuzeigen
+            for (hour in 0..24) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -255,53 +250,60 @@ fun DayView(
             }
         }
 
-        val eventColumns = assignColumns(events.value)
-        eventColumns.forEach { (event, col, maxColumns) ->
-            // Berechne die sichtbaren Grenzen für diesen Tag
-            val shownStart = maxOf(event.startTime, dayStart.value)
-            val shownEnd = minOf(event.endTime, dayEnd.value)
-            val startMinutes = ((shownStart - dayStart.value) / 60000f)
-            val endMinutes = ((shownEnd - dayStart.value) / 60000f)
-            val offsetY = ((startMinutes + 30f) / 60f) * hourHeightPx
-            val eventHeightPx = ((endMinutes - startMinutes) / 60f) * hourHeightPx
-            val columnWidthPx =
-                (maxWidthPx - with(density) { timeColumnWidth.toPx() }) / maxColumns
-            val offsetX =
-                (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
-            val minCardHeightDp = 60.dp
-            val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
+        // Events (eigene Ebene, recomposed nur bei Events- oder Größenänderung)
+        val eventColumns = remember(events.value, maxWidthPx) { assignColumns(events.value) }
+        events.value.forEach { event ->
+            val triple = eventColumns.find { it.first.id == event.id }
+            if (triple != null) {
+                val (event, col, maxColumns) = triple
+                val shownStart = maxOf(event.startTime, dayStart.value)
+                val shownEnd = minOf(event.endTime, dayEnd.value)
+                val startMinutes = ((shownStart - dayStart.value) / 60000f)
+                val endMinutes = ((shownEnd - dayStart.value) / 60000f)
+                val offsetY = (startMinutes / 60f) * hourHeightPx
+                val eventHeightPx = ((endMinutes - startMinutes) / 60f) * hourHeightPx
+                val columnWidthPx =
+                    (maxWidthPx - with(density) { timeColumnWidth.toPx() }) / maxColumns
+                val offsetX =
+                    (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
+                val minCardHeightDp = 60.dp
+                val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
 
-            // Rundung-Logik
-            val noTopCorners = event.startTime < dayStart.value
-            val noBottomCorners = event.endTime > dayEnd.value
+                val noTopCorners = event.startTime < dayStart.value
+                val noBottomCorners = event.endTime > dayEnd.value
 
-            // Zeit-Label-Logik
-            val showStartTimeAsMidnight = shownStart == dayStart.value
-            val showEndTimeAsMidnight = shownEnd == dayEnd.value
+                val showStartTimeAsMidnight = shownStart == dayStart.value
+                val showEndTimeAsMidnight = shownEnd == dayEnd.value
 
-            EventCard(
-                event = event,
-                isCompact = isCompact,
-                onClick = {
-                    navController.navigate("eventDetails/${event.eventId}?tab=2") {
-                        launchSingleTop = true
-                        restoreState = true
+                key(event.id) {
+                    Box(
+                        modifier = Modifier
+                            .offset { IntOffset(offsetX, offsetY.toInt()) }
+                            .width(with(density) { columnWidthPx.toDp() })
+                            .height(with(density) { eventHeightPx.toDp() })
+                    ) {
+                        EventCard(
+                            event = event,
+                            isCompact = isCompact,
+                            onClick = {
+                                navController.navigate("eventDetails/${event.eventId}?tab=2") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            noTopCorners = noTopCorners,
+                            noBottomCorners = noBottomCorners,
+                            showStartTimeAsMidnight = showStartTimeAsMidnight,
+                            showEndTimeAsMidnight = showEndTimeAsMidnight,
+                            eventStartOverride = shownStart,
+                            eventEndOverride = shownEnd
+                        )
                     }
-                },
-                modifier = Modifier
-                    .width(with(density) { columnWidthPx.toDp() })
-                    .defaultMinSize(minHeight = 24.dp)
-                    .padding(end = 8.dp)
-                    .offset { IntOffset(offsetX, offsetY.toInt()) }
-                    .height(with(density) { eventHeightPx.toDp() }),
-                noTopCorners = noTopCorners,
-                noBottomCorners = noBottomCorners,
-                showStartTimeAsMidnight = showStartTimeAsMidnight,
-                showEndTimeAsMidnight = showEndTimeAsMidnight,
-                eventStartOverride = shownStart,
-                eventEndOverride = shownEnd
-            )
+                }
+            }
         }
+
+        // Jetzt-Linie (eigene Ebene)
         if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24.5f) {
             Row(
                 modifier = Modifier

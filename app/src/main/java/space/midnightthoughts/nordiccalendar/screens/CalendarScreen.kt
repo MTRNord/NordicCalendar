@@ -1,7 +1,6 @@
 package space.midnightthoughts.nordiccalendar.screens
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -77,6 +76,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
+import java.util.PriorityQueue
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,10 +96,6 @@ fun CalendarScreen(
         calendarViewModel.selectedTab
     }.collectAsState(initial = 0)
 
-    Log.d(
-        "CalendarScreen",
-        "Rendering with selectedTab: $selectedTab.value, events count: ${events.value.size}, isRefreshing: $isRefreshing"
-    )
     val pullToRefreshState = rememberPullToRefreshState()
     PullToRefreshBox(
         state = pullToRefreshState,
@@ -147,7 +143,6 @@ fun CalendarScreen(
                     }
                 }
             )
-            Spacer(Modifier.height(8.dp))
             if (events.value.isEmpty()) {
                 Text(stringResource(R.string.no_events_found), modifier = Modifier.padding(16.dp))
             } else if (selectedTab.value == 2) {
@@ -167,20 +162,22 @@ fun CalendarScreen(
 }
 
 fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
+    data class ActiveEvent(val endTime: Long, val col: Int)
+
     val sorted = events.sortedBy { it.startTime }
-    val active = mutableListOf<Pair<Event, Int>>() // Event, column
-    val result =
-        mutableListOf<Triple<Event, Int, Int>>() // Event, column, maxColumns
+    val active = PriorityQueue(compareBy<ActiveEvent> { it.endTime })
+    val freeColumns = PriorityQueue<Int>()
+    val result = mutableListOf<Triple<Event, Int, Int>>()
+    var maxColumns = 0
+
     for (event in sorted) {
-        // Entferne abgelaufene Events
-        active.removeAll { it.first.endTime <= event.startTime }
-        // Finde freie Spalte
-        val usedColumns = active.map { it.second }.toSet()
-        val col =
-            (0..active.size).firstOrNull { it !in usedColumns } ?: active.size
-        active.add(event to col)
-        // maxColumns = aktuelle Anzahl aktiver Events
-        val maxColumns = active.size
+        // Entferne abgelaufene Events und gib deren Spalten frei
+        while (active.isNotEmpty() && active.peek()?.endTime!! <= event.startTime) {
+            freeColumns.add(active.poll()?.col)
+        }
+        val col = if (freeColumns.isNotEmpty()) freeColumns.poll() else active.size
+        active.add(ActiveEvent(event.endTime, col))
+        maxColumns = maxOf(maxColumns, active.size)
         result.add(Triple(event, col, maxColumns))
     }
     return result

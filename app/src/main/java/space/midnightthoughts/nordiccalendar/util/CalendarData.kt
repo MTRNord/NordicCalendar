@@ -9,6 +9,7 @@ import android.util.Log
 data class Calendar(
     val id: Long,
     val name: String,
+    val displayName: String,
     val color: Long,
     val accountName: String,
     val accountType: String,
@@ -81,12 +82,13 @@ class CalendarData {
             calendars.add(
                 Calendar(
                     id = calId,
-                    name = name ?: displayName,
+                    name = displayName ?: name,
                     color = color,
                     accountName = accountName ?: "",
                     accountType = accountType ?: "",
                     syncEvents = syncEvents == 1,
-                    visible = visible == 1
+                    visible = visible == 1,
+                    displayName = displayName ?: "No Display Name",
                 )
             )
         }
@@ -183,7 +185,8 @@ class CalendarData {
                             accountName = "Unknown Account",
                             accountType = "Unknown Type",
                             syncEvents = false,
-                            visible = false
+                            visible = false,
+                            displayName = "Unknown Calendar" // Fallback if calendar not found
                         ) // Fallback if calendar not found
                 )
             )
@@ -297,7 +300,8 @@ class CalendarData {
                         accountName = "Unknown Account",
                         accountType = "Unknown Type",
                         syncEvents = false,
-                        visible = false
+                        visible = false,
+                        displayName = "Unknown Calendar" // Fallback if calendar not found
                     ) // Fallback if calendar not found
             )
         } else null

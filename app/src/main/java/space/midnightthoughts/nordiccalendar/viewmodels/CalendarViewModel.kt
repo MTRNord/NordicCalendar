@@ -15,7 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val repository: CalendarRepository
 ) : ViewModel() {
     val events = repository.eventsFlow.stateIn(

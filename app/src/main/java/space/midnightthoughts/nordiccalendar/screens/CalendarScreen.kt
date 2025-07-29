@@ -531,7 +531,8 @@ fun EventCardPreview() {
             accountName = "Beispielkonto",
             accountType = "com.example",
             syncEvents = true,
-            visible = true
+            visible = true,
+            displayName = "Beispielkalender",
         )
     )
     EventCard(

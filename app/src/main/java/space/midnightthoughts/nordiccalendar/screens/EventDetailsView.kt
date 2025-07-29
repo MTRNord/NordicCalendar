@@ -1,8 +1,7 @@
 package space.midnightthoughts.nordiccalendar.screens
 
-import android.location.Geocoder
-import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DividerDefaults
@@ -26,13 +26,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -42,8 +42,10 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import dev.sargunv.maplibrecompose.compose.MaplibreMap
 import dev.sargunv.maplibrecompose.compose.layer.SymbolLayer
+import dev.sargunv.maplibrecompose.compose.rememberCameraState
 import dev.sargunv.maplibrecompose.compose.source.rememberGeoJsonSource
 import dev.sargunv.maplibrecompose.core.BaseStyle
+import dev.sargunv.maplibrecompose.core.CameraPosition
 import dev.sargunv.maplibrecompose.core.source.GeoJsonData
 import io.github.dellisd.spatialk.geojson.Feature
 import io.github.dellisd.spatialk.geojson.Point
@@ -52,12 +54,12 @@ import sh.calvin.autolinktext.rememberAutoLinkText
 import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.components.AppScaffold
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
+import space.midnightthoughts.nordiccalendar.viewmodels.BoundingBox
 import space.midnightthoughts.nordiccalendar.viewmodels.EventDetailsViewModel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 @Composable
 fun EventDetailsView(
@@ -93,51 +95,16 @@ fun EventDetailsView(
 
     val scrollState = rememberScrollState()
 
-    val locationText = event.value?.location?.trim()
-    var geocodeResult by remember(locationText) {
-        mutableStateOf<Pair<Boolean, android.location.Address?>>(
-            false to null
-        )
-    }
-    val context = LocalContext.current
-    val geocoderAvailable = remember { Geocoder.isPresent() }
-    Log.d("EventDetailsView", "Geocoder available: $geocoderAvailable")
-    LaunchedEffect(locationText, geocoderAvailable) {
-        if (!locationText.isNullOrEmpty() && geocoderAvailable) {
-            try {
-                val geocoder = Geocoder(context, Locale.getDefault())
-                if (android.os.Build.VERSION.SDK_INT >= 33) {
-                    geocoder.getFromLocationName(
-                        locationText,
-                        1,
-                        object : Geocoder.GeocodeListener {
-                            override fun onGeocode(addresses: List<android.location.Address>) {
-                                geocodeResult = if (addresses.isNotEmpty()) {
-                                    true to addresses[0]
-                                } else {
-                                    false to null
-                                }
-                            }
+    val boundingBox = remember(viewModel) {
+        viewModel.locationBoundingBox
+    }.collectAsState()
 
-                            override fun onError(errorMessage: String?) {
-                                geocodeResult = false to null
-                            }
-                        }
-                    )
-                } else {
-                    @Suppress("DEPRECATION")
-                    val results = geocoder.getFromLocationName(locationText, 1)
-                    geocodeResult = if (!results.isNullOrEmpty()) {
-                        true to results[0]
-                    } else {
-                        false to null
-                    }
-                }
-            } catch (_: Exception) {
-                geocodeResult = false to null
-            }
-        } else {
-            geocodeResult = false to null
+    val locationText = event.value?.location?.trim()
+    val locationPosition by viewModel.locationPosition.collectAsState()
+    val appLocaleString = appLocale.language
+    LaunchedEffect(locationText, appLocaleString) {
+        if (!locationText.isNullOrEmpty()) {
+            viewModel.resolveLocation(locationText, appLocaleString)
         }
     }
 
@@ -208,12 +175,13 @@ fun EventDetailsView(
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(48.dp))
-                        Row {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             if (event.value?.calendar?.color != null) {
                                 // Round color dot
                                 Box(
                                     modifier = Modifier
-                                        .padding(top = 4.dp)
                                         .size(16.dp)
                                         .background(
                                             color = if (event.value?.calendar?.color != null) {
@@ -227,7 +195,7 @@ fun EventDetailsView(
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
                             Text(
-                                text = event.value?.calendar?.name ?: "",
+                                text = event.value?.calendar?.displayName ?: "",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
@@ -269,12 +237,7 @@ fun EventDetailsView(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     if (!locationText.isNullOrEmpty()) {
-                        if (geocodeResult.first && geocodeResult.second != null) {
-                            val address = geocodeResult.second!!
-                            val position = Position(
-                                address.longitude,
-                                address.latitude
-                            )
+                        if (locationPosition != null) {
                             Column {
                                 Text(
                                     text = stringResource(R.string.location),
@@ -282,7 +245,10 @@ fun EventDetailsView(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                LocationMap(coordinate = position)
+                                LocationMap(
+                                    coordinate = locationPosition!!,
+                                    boundingBox = boundingBox.value
+                                )
                             }
                         } else {
                             Row(
@@ -379,14 +345,57 @@ fun EventDetailsView(
 }
 
 @Composable
-fun LocationMap(coordinate: Position) {
-    MaplibreMap(
+fun LocationMap(coordinate: Position, boundingBox: BoundingBox?) {
+    val shape = RoundedCornerShape(16.dp)
+    val uriHandler = LocalUriHandler.current
+    val camera = if (boundingBox != null) {
+        val centerLat = (boundingBox.north + boundingBox.south) / 2.0
+        val centerLon = (boundingBox.east + boundingBox.west) / 2.0
+        val center = Position(centerLon, centerLat)
+        val latDiff = boundingBox.north - boundingBox.south
+        val lonDiff = boundingBox.east - boundingBox.west
+        val zoom = when {
+            latDiff < 0.002 && lonDiff < 0.002 -> 17.0
+            latDiff < 0.01 && lonDiff < 0.01 -> 15.0
+            latDiff < 0.05 && lonDiff < 0.05 -> 14.0
+            else -> 13.0
+        }
+        rememberCameraState(
+            firstPosition = CameraPosition(
+                target = center,
+                zoom = zoom
+            )
+        )
+    } else {
+        rememberCameraState(
+            firstPosition = CameraPosition(
+                target = coordinate,
+                zoom = 13.0
+            )
+        )
+    }
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp),
-        baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty")
+            .height(200.dp)
+            .clip(shape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        MapContent(coordinate = coordinate)
+        MaplibreMap(
+            modifier = Modifier.matchParentSize(),
+            baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/liberty"),
+            cameraState = camera,
+            onMapClick = { pos, _ ->
+                // Open preferred routing app
+                val uri =
+                    "geo:${coordinate.latitude},${coordinate.longitude}?q=${coordinate.latitude},${coordinate.longitude}"
+                uriHandler.openUri(uri)
+                dev.sargunv.maplibrecompose.compose.ClickResult.Consume
+            },
+        ) {
+            MapContent(coordinate = coordinate)
+        }
     }
 }
 

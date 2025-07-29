@@ -2,6 +2,7 @@ package space.midnightthoughts.nordiccalendar.screens
 
 import android.text.format.DateUtils.formatElapsedTime
 import android.util.Patterns
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -129,6 +130,22 @@ fun EventDetailsView(
         }
     }
 
+    val tabArg = backStackEntry.arguments?.getInt("tab")
+
+    // Back-Handling: Wenn Tab-Argument vorhanden, gezielt zurück navigieren
+    val handleBack: () -> Unit = {
+        if (tabArg != null) {
+            navController.navigate("calendar?tab=$tabArg") {
+                popUpTo("calendar?tab=$tabArg") { inclusive = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        } else {
+            navController.popBackStack()
+        }
+    }
+    BackHandler { handleBack() }
+
     AppScaffold(
         title = event.value?.title
             ?: stringResource(
@@ -137,6 +154,7 @@ fun EventDetailsView(
             ),
         selectedDestination = "eventDetails",
         navController = navController,
+        onBackClick = handleBack // <-- Back-Logik an AppScaffold übergeben
     ) { innerPadding ->
         SelectionContainer(modifier = innerPadding) {
             Column(

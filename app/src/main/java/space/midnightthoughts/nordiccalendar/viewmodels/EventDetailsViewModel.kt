@@ -81,7 +81,7 @@ class EventDetailsViewModel @Inject constructor(
     }
 
     init {
-        val eventId = savedStateHandle.get<String>("eventId")?.toLongOrNull()
+        val eventId = savedStateHandle.get<Long>("eventId")
         if (eventId != null) {
             loadEvent(eventId)
         }

@@ -47,7 +47,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,7 +69,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
 import space.midnightthoughts.nordiccalendar.util.Event
@@ -79,7 +77,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
-
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -155,12 +152,13 @@ fun CalendarScreen(
             } else if (selectedTab == 2) {
                 DayView(
                     navController = navController,
-                    calendarViewModel = calendarViewModel
+                    calendarViewModel = calendarViewModel,
                 )
             } else {
                 EventList(
                     navController = navController,
-                    calendarViewModel = calendarViewModel
+                    calendarViewModel = calendarViewModel,
+                    selectedTab = selectedTab
                 )
             }
         }
@@ -181,40 +179,27 @@ fun DayView(
     val timeColumnWidth = 64.dp
     val density = LocalDensity.current
     val hourHeightPx = with(density) { hourHeightDp.toPx() }
-    val dayStart = events.value.minOfOrNull { it.startTime }?.let {
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = it
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        cal.timeInMillis
-    } ?: Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
+    val dayStart = remember(calendarViewModel) {
+        calendarViewModel.startMillis
+    }.collectAsState()
+    val dayEnd = remember(calendarViewModel) {
+        calendarViewModel.endMillis
+    }.collectAsState()
     val appLocale = getCurrentAppLocale(LocalContext.current)
     val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
-    val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
-    // Aktualisiere die "Jetzt"-Linie jede Sekunde
     LaunchedEffect(now) {
         now = System.currentTimeMillis()
         delay(1000)
     }
-    val nowMinutes = ((now - dayStart) / 60000f)
+    val nowMinutes = ((now - dayStart.value) / 60000f)
     val nowOffsetY = ((nowMinutes + 30f) / 60f) * hourHeightPx
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            val visibleHeightPx = with(density) { 600.dp.toPx() }
-            val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
-            scrollState.scrollTo(scrollTo)
-        }
-    }
+
+    val visibleHeightPx = with(density) { 600.dp.toPx() }
+    val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
+    val scrollState = rememberScrollState(initial = scrollTo)
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -234,7 +219,7 @@ fun DayView(
                     )
                 }
         ) {
-            for (hour in 0..23) {
+            for (hour in 0..24) { // Bis einschließlich 24, um 00:00 am Folgetag anzuzeigen
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -242,7 +227,7 @@ fun DayView(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        Date(dayStart + hour * 60 * 60 * 1000).toInstant()
+                        Date(dayStart.value + hour * 60 * 60 * 1000).toInstant()
                             .atZone(ZoneId.systemDefault()).toLocalDateTime().format(hourFormat),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.width(timeColumnWidth)
@@ -273,8 +258,11 @@ fun DayView(
 
         val eventColumns = assignColumns(events.value)
         eventColumns.forEach { (event, col, maxColumns) ->
-            val startMinutes = ((event.startTime - dayStart) / 60000f)
-            val endMinutes = ((event.endTime - dayStart) / 60000f)
+            // Berechne die sichtbaren Grenzen für diesen Tag
+            val shownStart = maxOf(event.startTime, dayStart.value)
+            val shownEnd = minOf(event.endTime, dayEnd.value)
+            val startMinutes = ((shownStart - dayStart.value) / 60000f)
+            val endMinutes = ((shownEnd - dayStart.value) / 60000f)
             val offsetY = ((startMinutes + 30f) / 60f) * hourHeightPx
             val eventHeightPx = ((endMinutes - startMinutes) / 60f) * hourHeightPx
             val columnWidthPx =
@@ -283,16 +271,36 @@ fun DayView(
                 (col * columnWidthPx).toInt() + with(density) { timeColumnWidth.toPx() }.toInt()
             val minCardHeightDp = 60.dp
             val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
+
+            // Rundung-Logik
+            val noTopCorners = event.startTime < dayStart.value
+            val noBottomCorners = event.endTime > dayEnd.value
+
+            // Zeit-Label-Logik
+            val showStartTimeAsMidnight = shownStart == dayStart.value
+            val showEndTimeAsMidnight = shownEnd == dayEnd.value
+
             EventCard(
                 event = event,
                 isCompact = isCompact,
-                onClick = { navController.navigate("eventDetails/${event.eventId}") },
+                onClick = {
+                    navController.navigate("eventDetails/${event.eventId}?tab=2") {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 modifier = Modifier
                     .width(with(density) { columnWidthPx.toDp() })
                     .defaultMinSize(minHeight = 24.dp)
                     .padding(end = 8.dp)
                     .offset { IntOffset(offsetX, offsetY.toInt()) }
-                    .height(with(density) { eventHeightPx.toDp() })
+                    .height(with(density) { eventHeightPx.toDp() }),
+                noTopCorners = noTopCorners,
+                noBottomCorners = noBottomCorners,
+                showStartTimeAsMidnight = showStartTimeAsMidnight,
+                showEndTimeAsMidnight = showEndTimeAsMidnight,
+                eventStartOverride = shownStart,
+                eventEndOverride = shownEnd
             )
         }
         // "Jetzt"-Linie und Label, nur wenn im Tagesbereich
@@ -486,17 +494,42 @@ fun EventCard(
     isCompact: Boolean,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    index: Int = 0
+    index: Int = 0,
+    noBottomCorners: Boolean = false,
+    noTopCorners: Boolean = false,
+    showStartTimeAsMidnight: Boolean = false,
+    showEndTimeAsMidnight: Boolean = false,
+    eventStartOverride: Long = 0L,
+    eventEndOverride: Long = 0L,
 ) {
     val appLocale = getCurrentAppLocale(LocalContext.current)
     val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
-    val startDate = remember(event.startTime) {
-        Date(event.startTime)
+    val startDate = remember(eventStartOverride.takeIf { it > 0L } ?: event.startTime) {
+        Date(eventStartOverride.takeIf { it > 0L } ?: event.startTime)
     }
-    val endDate = remember(event.endTime) {
-        Date(event.endTime)
+    val endDate = remember(eventEndOverride.takeIf { it > 0L } ?: event.endTime) {
+        Date(eventEndOverride.takeIf { it > 0L } ?: event.endTime)
     }
-
+    val shape = if (noTopCorners && noBottomCorners) {
+        MaterialTheme.shapes.medium.copy(
+            topStart = androidx.compose.foundation.shape.ZeroCornerSize,
+            topEnd = androidx.compose.foundation.shape.ZeroCornerSize,
+            bottomStart = androidx.compose.foundation.shape.ZeroCornerSize,
+            bottomEnd = androidx.compose.foundation.shape.ZeroCornerSize
+        )
+    } else if (noBottomCorners) {
+        MaterialTheme.shapes.medium.copy(
+            bottomStart = androidx.compose.foundation.shape.ZeroCornerSize,
+            bottomEnd = androidx.compose.foundation.shape.ZeroCornerSize
+        )
+    } else if (noTopCorners) {
+        MaterialTheme.shapes.medium.copy(
+            topStart = androidx.compose.foundation.shape.ZeroCornerSize,
+            topEnd = androidx.compose.foundation.shape.ZeroCornerSize
+        )
+    } else {
+        MaterialTheme.shapes.medium
+    }
     Card(
         modifier = modifier
             .defaultMinSize(minHeight = 24.dp)
@@ -511,7 +544,8 @@ fun EventCard(
         border = BorderStroke(
             1.dp,
             color = MaterialTheme.colorScheme.outline
-        )
+        ),
+        shape = shape
     ) {
         Column(
             modifier = Modifier
@@ -530,14 +564,18 @@ fun EventCard(
             )
             if (!isCompact) {
                 Spacer(modifier = Modifier.height(4.dp))
+                val startTimeText = when {
+                    showStartTimeAsMidnight -> "00:00"
+                    else -> startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                        .format(hourFormat)
+                }
+                val endTimeText = when {
+                    showEndTimeAsMidnight -> "24:00"
+                    else -> endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                        .format(hourFormat)
+                }
                 Text(
-                    "${
-                        startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
-                            .format(hourFormat)
-                    } - ${
-                        endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
-                            .format(hourFormat)
-                    }",
+                    "$startTimeText - $endTimeText",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -589,7 +627,8 @@ fun EventCardPreview() {
 @Composable
 fun EventList(
     navController: NavController,
-    calendarViewModel: CalendarViewModel
+    calendarViewModel: CalendarViewModel,
+    selectedTab: Int // Tab-Index als neuen Parameter
 ) {
     val events = remember(calendarViewModel) {
         calendarViewModel.events
@@ -600,7 +639,12 @@ fun EventList(
             Text(
                 event.title, modifier = Modifier
                     .padding(8.dp)
-                    .clickable { navController.navigate("eventDetails/${event.eventId}") })
+                    .clickable {
+                        navController.navigate("eventDetails/${event.eventId}?tab=$selectedTab") {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    })
         }
     }
 }

@@ -33,6 +33,7 @@ fun AppScaffold(
     selectedDestination: String,
     navController: NavController,
     floatingActionButton: (@Composable () -> Unit)? = null,
+    onBackClick: (() -> Unit)? = null,
     content: @Composable (Modifier) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -69,7 +70,7 @@ fun AppScaffold(
                             IconButton(
                                 onClick = {
                                     scope.launch { drawerState.close() }
-                                    navController.popBackStack()
+                                    onBackClick?.invoke() ?: navController.popBackStack()
                                 },
                                 modifier = Modifier.size(48.dp)
                             ) {

@@ -111,7 +111,12 @@ class MainActivity : ComponentActivity() {
                             IntroScreen(navController) { // Callback nach Abschluss
                                 OnboardingPrefs.setOnboardingDone(this@MainActivity, currentVersion)
                                 navController.navigate(Destinations.Calendar.route) {
-                                    popUpTo(Destinations.Intro.route) { inclusive = true }
+                                    popUpTo(Destinations.Intro.route) {
+                                        inclusive = true
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
                             }
                         }
@@ -129,7 +134,16 @@ class MainActivity : ComponentActivity() {
                                 navController = navController
                             )
                         }
-                        composable(Destinations.EventDetails.route) { backStackEntry ->
+                        composable(
+                            route = "eventDetails/{eventId}?tab={tab}",
+                            arguments = listOf(
+                                navArgument("eventId") { type = NavType.LongType },
+                                navArgument("tab") {
+                                    type = NavType.IntType
+                                    defaultValue = 0
+                                }
+                            )
+                        ) { backStackEntry ->
                             EventDetailsView(
                                 backStackEntry = backStackEntry,
                                 navController = navController
@@ -158,7 +172,15 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null) {
     val navigateToHome: () -> Unit = {
-        onFinish?.invoke() ?: navController.navigate(Destinations.Calendar.route)
+        onFinish?.invoke() ?: navController.navigate(Destinations.Calendar.route) {
+            popUpTo(Destinations.Calendar.route) {
+                inclusive = true
+                saveState = true
+            }
+
+            launchSingleTop = true
+            restoreState = true
+        }
     }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { onBoardingData.size })
     val coroutineScope = rememberCoroutineScope()

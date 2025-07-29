@@ -180,7 +180,7 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { onBoardingData.size })
     val coroutineScope = rememberCoroutineScope()
 
-    // Keep state if the user has allowed permmissions to hide the finish button using mutable state
+    // Keep state if the user has allowed permissions to hide the finish button using mutable state
     val hasPermissions = remember { mutableStateOf(false) }
 
     NordicCalendarTheme {
@@ -298,7 +298,6 @@ fun CalendarView(
 
 @Composable
 fun AboutView(navController: NavHostController) {
-
     AppScaffold(
         title = stringResource(R.string.about) + " Nordic Calendar",
         selectedDestination = "about",

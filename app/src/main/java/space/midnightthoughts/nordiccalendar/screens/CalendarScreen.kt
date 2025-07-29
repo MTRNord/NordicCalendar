@@ -44,6 +44,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -88,13 +89,13 @@ fun CalendarScreen(
     val calendarViewModel: CalendarViewModel = hiltViewModel()
     val events = remember(calendarViewModel) {
         calendarViewModel.events
-    }.collectAsState(initial = emptyList())
+    }.collectAsState()
     val isRefreshing = remember(calendarViewModel) {
         calendarViewModel.isRefreshing
-    }.collectAsState(initial = false)
+    }.collectAsState()
     val selectedTab = remember(calendarViewModel) {
         calendarViewModel.selectedTab
-    }.collectAsState(initial = 0)
+    }.collectAsState()
 
     Log.d(
         "CalendarScreen",
@@ -397,29 +398,30 @@ fun DateRangeHeader(
 ) {
     val startMillis = remember(calendarViewModel) {
         calendarViewModel.startMillis
-    }.collectAsState(initial = System.currentTimeMillis())
+    }.collectAsState()
     val endMillis = remember(calendarViewModel) {
         calendarViewModel.endMillis
-    }.collectAsState(initial = System.currentTimeMillis())
+    }.collectAsState()
     val appLocale = getCurrentAppLocale(LocalContext.current)
     val dateFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy", appLocale)
 
-    val startDate = remember(startMillis.value) {
-        Date(startMillis.value)
+    val startDate = remember {
+        derivedStateOf { Date(startMillis.value) }
     }
-    val endDate = remember(endMillis.value) {
-        Date(endMillis.value)
+    val endDate = remember {
+        derivedStateOf { Date(endMillis.value) }
     }
 
     val rangeText = when (selectedTab) {
         0, 1 -> "${
-            startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+            startDate.value.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
                 .format(dateFormat)
         } – ${
-            endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().format(dateFormat)
+            endDate.value.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                .format(dateFormat)
         }"
 
-        2 -> startDate.toInstant()
+        2 -> startDate.value.toInstant()
             .atZone(ZoneId.systemDefault()).toLocalDate()
             .format(dateFormat)
 
@@ -506,11 +508,11 @@ fun EventCard(
 ) {
     val appLocale = getCurrentAppLocale(LocalContext.current)
     val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
-    val startDate = remember(eventStartOverride.takeIf { it > 0L } ?: event.startTime) {
-        Date(eventStartOverride.takeIf { it > 0L } ?: event.startTime)
+    val startDate = remember {
+        derivedStateOf { Date(eventStartOverride.takeIf { it > 0L } ?: event.startTime) }
     }
-    val endDate = remember(eventEndOverride.takeIf { it > 0L } ?: event.endTime) {
-        Date(eventEndOverride.takeIf { it > 0L } ?: event.endTime)
+    val endDate = remember {
+        derivedStateOf { Date(eventEndOverride.takeIf { it > 0L } ?: event.endTime) }
     }
     val shape = if (noTopCorners && noBottomCorners) {
         MaterialTheme.shapes.medium.copy(
@@ -568,12 +570,14 @@ fun EventCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 val startTimeText = when {
                     showStartTimeAsMidnight -> "00:00"
-                    else -> startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                    else -> startDate.value.toInstant().atZone(ZoneId.systemDefault())
+                        .toLocalDateTime()
                         .format(hourFormat)
                 }
                 val endTimeText = when {
                     showEndTimeAsMidnight -> "24:00"
-                    else -> endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                    else -> endDate.value.toInstant().atZone(ZoneId.systemDefault())
+                        .toLocalDateTime()
                         .format(hourFormat)
                 }
                 Text(

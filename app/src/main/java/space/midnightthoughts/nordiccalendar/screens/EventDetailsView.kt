@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -76,22 +77,30 @@ fun EventDetailsView(
     val viewModel: EventDetailsViewModel = hiltViewModel()
     val event = remember(viewModel) {
         viewModel.event
-    }.collectAsState(initial = null)
-    val startDate = remember(event.value?.startTime) {
-        Date(event.value?.startTime ?: 0L)
+    }.collectAsState()
+    val startDate = remember {
+        derivedStateOf {
+            Date(event.value?.startTime ?: 0L)
+        }
     }
-    val endDate = remember(event.value?.endTime) {
-        Date(event.value?.endTime ?: 0L)
+    val endDate = remember {
+        derivedStateOf {
+            Date(event.value?.endTime ?: 0L)
+        }
     }
-    val startCalendar = remember(startDate) {
-        val calendar = Calendar.getInstance()
-        calendar.time = startDate
-        calendar
+    val startCalendar = remember {
+        derivedStateOf {
+            val calendar = Calendar.getInstance()
+            calendar.time = startDate.value
+            calendar
+        }
     }
-    val endCalendar = remember(endDate) {
-        val calendar = Calendar.getInstance()
-        calendar.time = endDate
-        calendar
+    val endCalendar = remember {
+        derivedStateOf {
+            val calendar = Calendar.getInstance()
+            calendar.time = endDate.value
+            calendar
+        }
     }
 
     val appLocale = getCurrentAppLocale(
@@ -102,8 +111,8 @@ fun EventDetailsView(
     val duration = remember(startDate, endDate) {
         // Make DateTimePeriod from start and end date
         val duration = Duration.between(
-            startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(),
-            endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+            startDate.value.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(),
+            endDate.value.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
         )
 
         // Format the duration as a string language agnostic using android.text.format.formatElapsedTime
@@ -121,13 +130,15 @@ fun EventDetailsView(
 
     val locationText = event.value?.location?.trim()
     // Prevent leaking the url to third party services
-    val isValidUrlInLocation = remember(locationText) {
-        Patterns.WEB_URL.matcher(locationText ?: "").matches()
+    val isValidUrlInLocation = remember {
+        derivedStateOf {
+            Patterns.WEB_URL.matcher(locationText ?: "").matches()
+        }
     }
     val locationPosition by viewModel.locationPosition.collectAsState()
     val appLocaleString = appLocale.language
     LaunchedEffect(locationText, appLocaleString) {
-        if (!locationText.isNullOrEmpty() && !isValidUrlInLocation) {
+        if (!locationText.isNullOrEmpty() && !isValidUrlInLocation.value) {
             viewModel.resolveLocation(locationText, appLocaleString)
         }
     }
@@ -179,21 +190,23 @@ fun EventDetailsView(
                     ) {
                         Text(
                             // Check if the event is starting and ending on the same day or not
-                            text = if (startCalendar.get(Calendar.DAY_OF_YEAR) == endCalendar.get(
+                            text = if (startCalendar.value.get(Calendar.DAY_OF_YEAR) == endCalendar.value.get(
                                     Calendar.DAY_OF_YEAR
                                 )
-                                && startCalendar.get(Calendar.YEAR) == endCalendar.get(Calendar.YEAR)
+                                && startCalendar.value.get(Calendar.YEAR) == endCalendar.value.get(
+                                    Calendar.YEAR
+                                )
                             ) {
-                                startDate.toInstant().atZone(ZoneId.systemDefault())
+                                startDate.value.toInstant().atZone(ZoneId.systemDefault())
                                     .toLocalDate()
                                     .format(dateFormat)
                             } else {
                                 stringResource(
                                     R.string.event_date_range,
-                                    startDate.toInstant().atZone(ZoneId.systemDefault())
+                                    startDate.value.toInstant().atZone(ZoneId.systemDefault())
                                         .toLocalDate()
                                         .format(dateFormat),
-                                    endDate.toInstant().atZone(ZoneId.systemDefault())
+                                    endDate.value.toInstant().atZone(ZoneId.systemDefault())
                                         .toLocalDate()
                                         .format(dateFormat)
                                 )
@@ -204,10 +217,11 @@ fun EventDetailsView(
                         Text(
                             text = stringResource(
                                 R.string.event_time_range,
-                                startDate.toInstant().atZone(ZoneId.systemDefault())
+                                startDate.value.toInstant().atZone(ZoneId.systemDefault())
                                     .toLocalTime()
                                     .format(timeFormat),
-                                endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime()
+                                endDate.value.toInstant().atZone(ZoneId.systemDefault())
+                                    .toLocalTime()
                                     .format(timeFormat)
                             ),
                             style = MaterialTheme.typography.titleSmall,
@@ -296,7 +310,7 @@ fun EventDetailsView(
                         DividerDefaults.Thickness,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
-                    if (locationPosition != null && !isValidUrlInLocation) {
+                    if (locationPosition != null && !isValidUrlInLocation.value) {
                         Column {
                             Text(
                                 text = stringResource(R.string.location),

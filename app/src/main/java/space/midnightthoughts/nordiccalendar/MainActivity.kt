@@ -58,6 +58,7 @@ import space.midnightthoughts.nordiccalendar.onboarding.OnBoardItem
 import space.midnightthoughts.nordiccalendar.onboarding.onBoardingData
 import space.midnightthoughts.nordiccalendar.screens.CalendarScreen
 import space.midnightthoughts.nordiccalendar.screens.EventDetailsView
+import space.midnightthoughts.nordiccalendar.screens.SettingsView
 import space.midnightthoughts.nordiccalendar.ui.theme.NordicCalendarTheme
 import space.midnightthoughts.nordiccalendar.util.OnboardingPrefs
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
@@ -264,28 +265,6 @@ fun CalendarView(
             modifier = innerPadding,
             navController = navController,
         )
-    }
-}
-
-
-@Composable
-fun SettingsView(navController: NavHostController) {
-    AppScaffold(
-        title = stringResource(R.string.settings),
-        selectedDestination = "settings",
-        navController = navController,
-
-        ) { innerPadding ->
-        Column(
-            modifier = innerPadding
-                .fillMaxSize()
-        ) {
-            Text(
-                stringResource(R.string.settings),
-                modifier = Modifier.padding(16.dp)
-            )
-            // Weitere Einstellungen hier
-        }
     }
 }
 

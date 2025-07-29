@@ -38,5 +38,8 @@
     <string name="event_not_found">Event not found or loading…</string>
     <string name="event_time_range">From %1$s to %2$s</string>
     <string name="event_date_range">%1$s until %2$s</string>
+    <string name="nominatim_url_hint">Example: https://nominatim.openstreetmap.org/search</string>
+    <string name="nominatim_url_label">OpenStreetMap Nominatim URL</string>
+    <string name="save">Save</string>
 </resources>
 

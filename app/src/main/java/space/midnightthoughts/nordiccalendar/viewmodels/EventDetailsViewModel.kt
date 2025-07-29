@@ -97,7 +97,9 @@ class EventDetailsViewModel @Inject constructor(
     fun resolveLocation(address: String, locale: String = "de") {
         viewModelScope.launch {
             try {
-                val url = "https://nominatim.openstreetmap.org/search"
+                val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                val url =
+                    prefs.getString("nominatim_url", "https://nominatim.openstreetmap.org/search")!!
                 val response: List<NominatimResult> = ktorClient.get(url) {
                     url {
                         parameters.append("q", address)

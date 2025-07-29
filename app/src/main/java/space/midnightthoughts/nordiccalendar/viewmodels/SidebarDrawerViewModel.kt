@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SidebarDrawerViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val repository: CalendarRepository
 ) : ViewModel() {
     val calendars = repository.calendarsFlow.stateIn(

@@ -1,5 +1,6 @@
 package space.midnightthoughts.nordiccalendar.screens
 
+import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -100,10 +101,14 @@ fun EventDetailsView(
     }.collectAsState()
 
     val locationText = event.value?.location?.trim()
+    // Prevent leaking the url to third party services
+    val isValidUrlInLocation = remember(locationText) {
+        Patterns.WEB_URL.matcher(locationText ?: "").matches()
+    }
     val locationPosition by viewModel.locationPosition.collectAsState()
     val appLocaleString = appLocale.language
     LaunchedEffect(locationText, appLocaleString) {
-        if (!locationText.isNullOrEmpty()) {
+        if (!locationText.isNullOrEmpty() && !isValidUrlInLocation) {
             viewModel.resolveLocation(locationText, appLocaleString)
         }
     }
@@ -236,45 +241,18 @@ fun EventDetailsView(
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    if (!locationText.isNullOrEmpty()) {
-                        if (locationPosition != null) {
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.location),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                LocationMap(
-                                    coordinate = locationPosition!!,
-                                    boundingBox = boundingBox.value
-                                )
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.Top,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.location),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.width(24.dp))
-                                Text(
-                                    text = AnnotatedString.rememberAutoLinkText(
-                                        if (event.value?.location?.trim().isNullOrEmpty()) {
-                                            stringResource(R.string.no_location_available)
-                                        } else {
-                                            event.value?.location ?: ""
-                                        }
-                                    ),
-
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
+                    if (locationPosition != null && !isValidUrlInLocation) {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.location),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LocationMap(
+                                coordinate = locationPosition!!,
+                                boundingBox = boundingBox.value
+                            )
                         }
                     } else {
                         Row(
@@ -289,11 +267,19 @@ fun EventDetailsView(
                             )
                             Spacer(modifier = Modifier.width(24.dp))
                             Text(
-                                text = stringResource(R.string.no_location_available),
+                                text = AnnotatedString.rememberAutoLinkText(
+                                    if (event.value?.location?.trim().isNullOrEmpty()) {
+                                        stringResource(R.string.no_location_available)
+                                    } else {
+                                        event.value?.location ?: ""
+                                    }
+                                ),
+
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
+
                     }
                     // TODO: Invitees and attendees and alerts
 

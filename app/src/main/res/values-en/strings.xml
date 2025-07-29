@@ -26,5 +26,17 @@
     <string name="tab_week">Week</string>
     <string name="tab_day">Day</string>
     <string name="now">Now</string>
+    <string name="calendar_label">Calendar:</string>
+    <string name="organizer">Organizer:</string>
+    <string name="no_organizer_available">No organizer available</string>
+    <string name="attendees">Attendees:</string>
+    <string name="no_attendees_available">No attendees available</string>
+    <string name="location">Location:</string>
+    <string name="no_location_available">No location specified</string>
+    <string name="description">Description:</string>
+    <string name="no_description_available">No description available</string>
+    <string name="event_not_found">Event not found or loading…</string>
+    <string name="event_time_range">From %1$s to %2$s</string>
+    <string name="event_date_range">%1$s until %2$s</string>
 </resources>
 

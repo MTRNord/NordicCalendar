@@ -3,8 +3,11 @@ package space.midnightthoughts.nordiccalendar.screens
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +50,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,12 +64,13 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.R
+import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
 import space.midnightthoughts.nordiccalendar.util.Event
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
-import java.text.SimpleDateFormat
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
@@ -180,7 +187,8 @@ fun DayView(
         set(Calendar.SECOND, 0)
         set(Calendar.MILLISECOND, 0)
     }.timeInMillis
-    val hourFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val appLocale = getCurrentAppLocale(LocalContext.current)
+    val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -217,7 +225,8 @@ fun DayView(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        hourFormat.format(Date(dayStart + hour * 60 * 60 * 1000)),
+                        Date(dayStart + hour * 60 * 60 * 1000).toInstant()
+                            .atZone(ZoneId.systemDefault()).toLocalDateTime().format(hourFormat),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.width(timeColumnWidth)
                     )
@@ -260,7 +269,6 @@ fun DayView(
             EventCard(
                 event = event,
                 isCompact = isCompact,
-                hourFormat = hourFormat,
                 onClick = { navController.navigate("eventDetails/${event.eventId}") },
                 modifier = Modifier
                     .width(with(density) { columnWidthPx.toDp() })
@@ -278,13 +286,23 @@ fun DayView(
                     .offset { IntOffset(0, nowOffsetY.toInt()) },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    stringResource(R.string.now),
-                    color = lineColor,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(start = 16.dp, end = 24.dp)
-                )
-                androidx.compose.foundation.Canvas(
+                Box(
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .background(
+                            color = lineColor,
+                            shape = MaterialTheme.shapes.small
+                        )
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        Date(now).toInstant()
+                            .atZone(ZoneId.systemDefault()).toLocalDateTime().format(hourFormat),
+                        color = MaterialTheme.colorScheme.onError,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                Canvas(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(lineThickness)
@@ -292,7 +310,7 @@ fun DayView(
                 ) {
                     drawLine(
                         color = lineColor,
-                        start = androidx.compose.ui.geometry.Offset(
+                        start = Offset(
                             0f,
                             size.height / 2
                         ),
@@ -301,7 +319,7 @@ fun DayView(
                             size.height / 2
                         ),
                         strokeWidth = size.height,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        cap = StrokeCap.Round
                     )
                 }
             }
@@ -341,19 +359,28 @@ fun DateRangeHeader(
     val endMillis = remember(calendarViewModel) {
         calendarViewModel.endMillis
     }.collectAsState(initial = System.currentTimeMillis())
-    val dateFormat = when (selectedTab) {
-        0, 1 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-        2 -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-        else -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-    }
-    val rangeText = when (selectedTab) {
-        0, 1 -> dateFormat.format(Date(startMillis.value)) + " – " + dateFormat.format(
-            Date(
-                endMillis.value
-            )
-        )
+    val appLocale = getCurrentAppLocale(LocalContext.current)
+    val dateFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy", appLocale)
 
-        2 -> dateFormat.format(Date(startMillis.value))
+    val startDate = remember(startMillis.value) {
+        Date(startMillis.value)
+    }
+    val endDate = remember(endMillis.value) {
+        Date(endMillis.value)
+    }
+
+    val rangeText = when (selectedTab) {
+        0, 1 -> "${
+            startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                .format(dateFormat)
+        } – ${
+            endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().format(dateFormat)
+        }"
+
+        2 -> startDate.toInstant()
+            .atZone(ZoneId.systemDefault()).toLocalDate()
+            .format(dateFormat)
+
         else -> ""
     }
     val isToday = when (selectedTab) {
@@ -419,10 +446,18 @@ fun DateRangeHeader(
 fun EventCard(
     event: Event,
     isCompact: Boolean,
-    hourFormat: SimpleDateFormat,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
+    val appLocale = getCurrentAppLocale(LocalContext.current)
+    val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
+    val startDate = remember(event.startTime) {
+        Date(event.startTime)
+    }
+    val endDate = remember(event.endTime) {
+        Date(event.endTime)
+    }
+
     Card(
         modifier = modifier
             .defaultMinSize(minHeight = 24.dp)
@@ -451,7 +486,13 @@ fun EventCard(
             if (!isCompact) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    hourFormat.format(Date(event.startTime)) + " - " + hourFormat.format(Date(event.endTime)),
+                    "${
+                        startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                            .format(hourFormat)
+                    } - ${
+                        endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                            .format(hourFormat)
+                    }",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -481,12 +522,21 @@ fun EventCardPreview() {
         calendarId = 1L,
         location = "Beispielort",
         allDay = false,
-        organizer = "Beispielorganisator"
+        organizer = "Beispielorganisator",
+        calendar = space.midnightthoughts.nordiccalendar.util.Calendar(
+            id = 1L,
+            name = "Beispielkalender",
+            color = 0xFF6200EE, // Beispiel-Farbe
+            selected = true,
+            accountName = "Beispielkonto",
+            accountType = "com.example",
+            syncEvents = true,
+            visible = true
+        )
     )
     EventCard(
         event = sampleEvent,
         isCompact = false,
-        hourFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     )
 }
 

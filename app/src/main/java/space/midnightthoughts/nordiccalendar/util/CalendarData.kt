@@ -9,12 +9,11 @@ import android.util.Log
 data class Calendar(
     val id: Long,
     val name: String,
-    val color: Int,
+    val color: Long,
     val accountName: String,
     val accountType: String,
     val syncEvents: Boolean,
     val visible: Boolean,
-    // TODO: Store this somewhere so it is kept across app restarts
     val selected: Boolean = true
 )
 
@@ -29,7 +28,9 @@ data class Event(
     val location: String?,
     val allDay: Boolean,
     val organizer: String?,
-    val attendees: List<String> = emptyList()
+    val attendees: List<String> = emptyList(),
+    // Reference to the calendar this event belongs to
+    val calendar: Calendar
 )
 
 // Helper for the android calendar provider/CalendarContract
@@ -72,7 +73,7 @@ class CalendarData {
             val calId = cur.getLong(PROJECTION_ID_INDEX)
             val displayName = cur.getString(PROJECTION_DISPLAY_NAME_INDEX)
             val name = cur.getString(PROJECTION_NAME_INDEX)
-            val color = cur.getInt(PROJECTION_CALENDAR_COLOR_INDEX)
+            val color = cur.getLong(PROJECTION_CALENDAR_COLOR_INDEX)
             val visible = cur.getInt(PROJECTION_VISIBLE_INDEX)
             val syncEvents = cur.getInt(PROJECTION_SYNC_EVENTS_INDEX)
             val accountName = cur.getString(PROJECTION_ACCOUNT_NAME_INDEX)
@@ -173,7 +174,17 @@ class CalendarData {
                     calendarId = calId,
                     location = location,
                     allDay = allDay,
-                    organizer = organizer
+                    organizer = organizer,
+                    calendar = getCalendars(contentResolver).firstOrNull { it.id == calId }
+                        ?: Calendar(
+                            id = calId,
+                            name = "Unknown Calendar",
+                            color = 0xFF000000, // Default black color
+                            accountName = "Unknown Account",
+                            accountType = "Unknown Type",
+                            syncEvents = false,
+                            visible = false
+                        ) // Fallback if calendar not found
                 )
             )
         }
@@ -277,7 +288,17 @@ class CalendarData {
                 calendarId = cur.getLong(6),
                 location = cur.getString(7),
                 allDay = cur.getInt(8) == 1,
-                organizer = cur.getString(9)
+                organizer = cur.getString(9),
+                calendar = getCalendars(contentResolver).firstOrNull { it.id == cur.getLong(6) }
+                    ?: Calendar(
+                        id = cur.getLong(6),
+                        name = "Unknown Calendar",
+                        color = 0xFF000000, // Default black color
+                        accountName = "Unknown Account",
+                        accountType = "Unknown Type",
+                        syncEvents = false,
+                        visible = false
+                    ) // Fallback if calendar not found
             )
         } else null
         cur?.close()

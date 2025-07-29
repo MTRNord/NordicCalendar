@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -101,7 +104,20 @@ class MainActivity : ComponentActivity() {
                 } else {
                     NavHost(
                         navController = navController,
-                        startDestination = if (showOnboarding) Destinations.Intro.route else Destinations.Calendar.route
+                        startDestination = if (showOnboarding) Destinations.Intro.route else Destinations.Calendar.route,
+                        // See https://developer.android.com/develop/ui/compose/system/predictive-back-setup for more info
+                        popExitTransition = {
+                            scaleOut(
+                                targetScale = 0.9f,
+                                transformOrigin = TransformOrigin(
+                                    pivotFractionX = 0.5f,
+                                    pivotFractionY = 0.5f
+                                )
+                            )
+                        },
+                        popEnterTransition = {
+                            EnterTransition.None
+                        },
                     ) {
                         composable(Destinations.Intro.route) {
                             IntroScreen(navController) { // Callback nach Abschluss

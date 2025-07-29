@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -147,11 +149,9 @@ fun EventDetailsView(
     BackHandler { handleBack() }
 
     AppScaffold(
-        title = event.value?.title
-            ?: stringResource(
-                R.string.event_details,
-                backStackEntry.arguments?.getString("eventId") ?: ""
-            ),
+        title = stringResource(
+            R.string.event_details_title,
+        ),
         selectedDestination = "eventDetails",
         navController = navController,
         onBackClick = handleBack // <-- Back-Logik an AppScaffold übergeben
@@ -160,13 +160,22 @@ fun EventDetailsView(
             Column(
                 modifier = Modifier
                     .verticalScroll(scrollState)
-                    .padding(16.dp)
+                    .padding(bottom = 16.dp, start = 16.dp, end = 16.dp, top = 0.dp)
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (event.value != null) {
+                    Text(
+                        text = event.value?.title ?: "",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics {
+                            heading()
+                        }
+                    )
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
                             // Check if the event is starting and ending on the same day or not
@@ -189,7 +198,7 @@ fun EventDetailsView(
                                         .format(dateFormat)
                                 )
                             },
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
@@ -201,7 +210,7 @@ fun EventDetailsView(
                                 endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime()
                                     .format(timeFormat)
                             ),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
                         // Duration of the event
@@ -210,7 +219,7 @@ fun EventDetailsView(
                                 R.string.event_duration,
                                 duration,
                             ),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }

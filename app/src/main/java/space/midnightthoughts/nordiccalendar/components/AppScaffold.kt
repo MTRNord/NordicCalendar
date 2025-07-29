@@ -28,6 +28,60 @@ import space.midnightthoughts.nordiccalendar.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun AppScaffoldContent(
+    title: String?,
+    isBackButtonVisible: Boolean,
+    navController: NavController,
+    onBackClick: (() -> Unit)? = null,
+    floatingActionButton: (@Composable () -> Unit)? = null,
+    content: @Composable (Modifier) -> Unit,
+    onMenuClick: (() -> Unit)? = null
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    if (title == null) {
+                        Text(stringResource(R.string.app_name))
+                    } else {
+                        Text(title)
+                    }
+                },
+                navigationIcon = {
+                    if (isBackButtonVisible) {
+                        IconButton(
+                            onClick = {
+                                onBackClick?.invoke() ?: navController.popBackStack()
+                            },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.back)
+                            )
+                        }
+                    } else if (onMenuClick != null) {
+                        IconButton(
+                            onClick = { onMenuClick() },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = stringResource(R.string.menu)
+                            )
+                        }
+                    }
+                }
+            )
+        },
+        floatingActionButton = floatingActionButton ?: { },
+    ) { innerPadding ->
+        content(Modifier.padding(innerPadding))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun AppScaffold(
     title: String? = null,
     selectedDestination: String,
@@ -45,57 +99,38 @@ fun AppScaffold(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            SidebarDrawer(
-                selectedDestination = selectedDestination,
+    if (isDrawerDestination) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                SidebarDrawer(
+                    selectedDestination = selectedDestination,
+                    navController = navController,
+                    drawerState = drawerState,
+                )
+            }
+        ) {
+            AppScaffoldContent(
+                title = title,
+                isBackButtonVisible = isBackButtonVisible,
                 navController = navController,
-                drawerState = drawerState,
+                onBackClick = {
+                    scope.launch { drawerState.close() }
+                    onBackClick?.invoke() ?: navController.popBackStack()
+                },
+                floatingActionButton = floatingActionButton,
+                content = content,
+                onMenuClick = { scope.launch { drawerState.open() } }
             )
         }
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        if (title == null) {
-                            Text(stringResource(R.string.app_name))
-                        } else {
-                            Text(title)
-                        }
-                    },
-                    navigationIcon = {
-                        if (isBackButtonVisible) {
-                            IconButton(
-                                onClick = {
-                                    scope.launch { drawerState.close() }
-                                    onBackClick?.invoke() ?: navController.popBackStack()
-                                },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.back)
-                                )
-                            }
-                        } else {
-                            IconButton(
-                                onClick = { scope.launch { drawerState.open() } },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Menu,
-                                    contentDescription = stringResource(R.string.menu)
-                                )
-                            }
-                        }
-                    }
-                )
-            },
-            floatingActionButton = floatingActionButton ?: { },
-        ) { innerPadding ->
-            content(Modifier.padding(innerPadding))
-        }
+    } else {
+        AppScaffoldContent(
+            title = title,
+            isBackButtonVisible = true,
+            navController = navController,
+            onBackClick = onBackClick,
+            floatingActionButton = floatingActionButton,
+            content = content
+        )
     }
 }

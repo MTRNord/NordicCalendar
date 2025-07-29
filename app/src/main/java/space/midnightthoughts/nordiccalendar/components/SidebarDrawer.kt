@@ -3,13 +3,10 @@ package space.midnightthoughts.nordiccalendar.components
 import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -128,27 +125,32 @@ fun SidebarDrawer(
                 modifier = Modifier.fillMaxWidth(),
                 colors = NavigationDrawerItemDefaults.colors()
             )
-            Spacer(Modifier.height(16.dp))
-            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(
                 stringResource(R.string.calendar_selection),
                 style = MaterialTheme.typography.titleMedium,
                 modifier =
                     Modifier.padding(start = 8.dp, bottom = 8.dp, end = 8.dp, top = 8.dp)
             )
-            Spacer(Modifier.height(8.dp))
-            calendars.value.forEach { calendar ->
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = selectedCalendars.value.contains(calendar),
-                        onCheckedChange = {
-                            scope.launch {
-                                viewModel.toggleCalendar(calendar)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)
+            ) {
+
+                calendars.value.forEach { calendar ->
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = selectedCalendars.value.contains(calendar),
+                            onCheckedChange = {
+                                scope.launch {
+                                    viewModel.toggleCalendar(calendar)
+                                }
                             }
-                        }
-                    )
-                    Text(calendar.name, modifier = Modifier.padding(start = 8.dp))
+                        )
+                        Text(calendar.name, modifier = Modifier.padding(start = 8.dp))
+                    }
                 }
             }
         }

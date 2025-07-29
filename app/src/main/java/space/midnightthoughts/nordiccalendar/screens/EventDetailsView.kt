@@ -1,5 +1,6 @@
 package space.midnightthoughts.nordiccalendar.screens
 
+import android.text.format.DateUtils.formatElapsedTime
 import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,10 +58,12 @@ import space.midnightthoughts.nordiccalendar.components.AppScaffold
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
 import space.midnightthoughts.nordiccalendar.viewmodels.BoundingBox
 import space.midnightthoughts.nordiccalendar.viewmodels.EventDetailsViewModel
+import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
+import kotlin.time.toKotlinDuration
 
 @Composable
 fun EventDetailsView(
@@ -93,6 +96,19 @@ fun EventDetailsView(
     )
     val dateFormat = DateTimeFormatter.ofPattern("EEEE, dd.MM.yyyy", appLocale)
     val timeFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
+    val duration = remember(startDate, endDate) {
+        // Make DateTimePeriod from start and end date
+        val duration = Duration.between(
+            startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(),
+            endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+        )
+
+        // Format the duration as a string language agnostic using android.text.format.formatElapsedTime
+        formatElapsedTime(
+            duration.toKotlinDuration().inWholeSeconds
+        )
+
+    }
 
     val scrollState = rememberScrollState()
 
@@ -128,47 +144,63 @@ fun EventDetailsView(
                     .verticalScroll(scrollState)
                     .padding(16.dp)
                     .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (event.value != null) {
-                    Text(
-                        // Check if the event is starting and ending on the same day or not
-                        text = if (startCalendar.get(Calendar.DAY_OF_YEAR) == endCalendar.get(
-                                Calendar.DAY_OF_YEAR
-                            )
-                            && startCalendar.get(Calendar.YEAR) == endCalendar.get(Calendar.YEAR)
-                        ) {
-                            startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                                .format(dateFormat)
-                        } else {
-                            stringResource(
-                                R.string.event_date_range,
-                                startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                                    .format(dateFormat),
-                                endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            // Check if the event is starting and ending on the same day or not
+                            text = if (startCalendar.get(Calendar.DAY_OF_YEAR) == endCalendar.get(
+                                    Calendar.DAY_OF_YEAR
+                                )
+                                && startCalendar.get(Calendar.YEAR) == endCalendar.get(Calendar.YEAR)
+                            ) {
+                                startDate.toInstant().atZone(ZoneId.systemDefault())
+                                    .toLocalDate()
                                     .format(dateFormat)
-                            )
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.event_time_range,
-                            startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime()
-                                .format(timeFormat),
-                            endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime()
-                                .format(timeFormat)
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                            } else {
+                                stringResource(
+                                    R.string.event_date_range,
+                                    startDate.toInstant().atZone(ZoneId.systemDefault())
+                                        .toLocalDate()
+                                        .format(dateFormat),
+                                    endDate.toInstant().atZone(ZoneId.systemDefault())
+                                        .toLocalDate()
+                                        .format(dateFormat)
+                                )
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.event_time_range,
+                                startDate.toInstant().atZone(ZoneId.systemDefault())
+                                    .toLocalTime()
+                                    .format(timeFormat),
+                                endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime()
+                                    .format(timeFormat)
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        // Duration of the event
+                        Text(
+                            text = stringResource(
+                                R.string.event_duration,
+                                duration,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                     HorizontalDivider(
                         Modifier,
                         DividerDefaults.Thickness,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Top,
@@ -206,13 +238,11 @@ fun EventDetailsView(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider(
                         Modifier,
                         DividerDefaults.Thickness,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Top,
@@ -234,13 +264,11 @@ fun EventDetailsView(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider(
                         Modifier,
                         DividerDefaults.Thickness,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
                     if (locationPosition != null && !isValidUrlInLocation) {
                         Column {
                             Text(
@@ -283,13 +311,11 @@ fun EventDetailsView(
                     }
                     // TODO: Invitees and attendees and alerts
 
-                    Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider(
                         Modifier,
                         DividerDefaults.Thickness,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -320,7 +346,6 @@ fun EventDetailsView(
                             backStackEntry.arguments?.getString("eventId") ?: ""
                         )
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
                     Text(
                         stringResource(R.string.event_not_found),
                     )

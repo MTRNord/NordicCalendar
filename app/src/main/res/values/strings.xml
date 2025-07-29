@@ -41,5 +41,6 @@
     <string name="nominatim_url_hint">Beispiel: https://nominatim.openstreetmap.org/search</string>
     <string name="nominatim_url_label">OpenStreetMap Nominatim URL</string>
     <string name="save">Speichern</string>
+    <string name="event_duration">Dauer: %1$s</string>
 </resources>
 

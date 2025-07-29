@@ -55,6 +55,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.collectionItemInfo
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -216,7 +222,16 @@ fun DayView(
         val lineThickness = 4.dp
         val lineColor = MaterialTheme.colorScheme.error
         // Stunden-Divider
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    collectionInfo = CollectionInfo(
+                        rowCount = events.value.size,
+                        columnCount = 1,
+                    )
+                }
+        ) {
             for (hour in 0..23) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -447,7 +462,8 @@ fun EventCard(
     event: Event,
     isCompact: Boolean,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    index: Int = 0
 ) {
     val appLocale = getCurrentAppLocale(LocalContext.current)
     val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
@@ -462,6 +478,11 @@ fun EventCard(
         modifier = modifier
             .defaultMinSize(minHeight = 24.dp)
             .padding(end = 8.dp)
+            .semantics {
+                collectionItemInfo = CollectionItemInfo(
+                    index, 0, 0, 0,
+                )
+            }
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         border = BorderStroke(
@@ -481,7 +502,8 @@ fun EventCard(
             Text(
                 event.title,
                 overflow = TextOverflow.Ellipsis,
-                style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge
+                style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.semantics { heading() }
             )
             if (!isCompact) {
                 Spacer(modifier = Modifier.height(4.dp))

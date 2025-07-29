@@ -25,7 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -251,12 +251,20 @@ fun CalendarView(
         selectedDestination = "calendar",
         navController = navController,
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* Event hinzufügen (später) */ }) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = stringResource(R.string.event_add)
-                )
-            }
+            ExtendedFloatingActionButton(
+                onClick = { /* Event hinzufügen (später) */ },
+                icon = {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = stringResource(R.string.event_add),
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.event_add),
+                    )
+                },
+            )
         }
     ) { innerPadding ->
         CalendarScreen(

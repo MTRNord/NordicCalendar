@@ -1,6 +1,7 @@
 package space.midnightthoughts.nordiccalendar.viewmodels
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val repository: CalendarRepository
+    private val repository: CalendarRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     val events = repository.eventsFlow.stateIn(
         viewModelScope,
@@ -31,8 +33,10 @@ class CalendarViewModel @Inject constructor(
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
     init {
-        // Repository initialisieren (Context benötigt)
-        setTab(0)
+        val tab = savedStateHandle.get<Int?>("tab")
+        if (tab != null) {
+            setTab(tab)
+        }
     }
 
     fun setTab(tab: Int) {
@@ -243,5 +247,12 @@ class CalendarViewModel @Inject constructor(
             set(java.util.Calendar.SECOND, 59)
         }.timeInMillis
         repository.setTimeRange(start, end)
+    }
+
+    fun refreshEvents() {
+        isRefreshing.value = true
+        repository.refreshEvents(context).apply {
+            isRefreshing.value = false
+        }
     }
 }

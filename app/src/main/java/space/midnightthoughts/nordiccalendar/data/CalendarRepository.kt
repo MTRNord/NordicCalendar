@@ -96,4 +96,13 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
     fun getEventById(context: Context, eventId: Long): Event? {
         return calendarData.getEventById(context.contentResolver, eventId)
     }
+
+    fun refreshEvents(context: Context) {
+        repoScope.launch {
+            val calendars = getCalendars(context)
+            val selectedIds = calendars.filter { it.selected }.map { it.id }
+            _eventsFlow.value =
+                getEventsForCalendars(context, selectedIds, _startMillis.value, _endMillis.value)
+        }
+    }
 }

@@ -34,8 +34,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -66,7 +66,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import space.midnightthoughts.nordiccalendar.R
@@ -83,29 +83,29 @@ import java.util.Date
 @Composable
 fun CalendarScreen(
     modifier: Modifier = Modifier,
-    calendarViewModel: CalendarViewModel = viewModel(),
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
     navController: NavController,
 ) {
+    val calendarViewModel: CalendarViewModel = hiltViewModel()
     val events = remember(calendarViewModel) {
         calendarViewModel.events
     }.collectAsState(initial = emptyList())
     val isRefreshing = remember(calendarViewModel) {
         calendarViewModel.isRefreshing
     }.collectAsState(initial = false)
+    val selectedTab = remember(calendarViewModel) {
+        calendarViewModel.selectedTab
+    }.collectAsState(initial = 0)
 
     Log.d(
         "CalendarScreen",
-        "Rendering with selectedTab: $selectedTab, events count: ${events.value.size}, isRefreshing: $isRefreshing"
+        "Rendering with selectedTab: $selectedTab.value, events count: ${events.value.size}, isRefreshing: $isRefreshing"
     )
     val pullToRefreshState = rememberPullToRefreshState()
     PullToRefreshBox(
         state = pullToRefreshState,
         modifier = modifier,
         onRefresh = {
-            // updateEvents gibt es nicht mehr im ViewModel, stattdessen Tab neu setzen, um Zeitraum zu triggern
-            calendarViewModel.setTab(selectedTab)
+            calendarViewModel.refreshEvents()
         },
         isRefreshing = isRefreshing.value,
         indicator = {
@@ -119,27 +119,28 @@ fun CalendarScreen(
         },
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            CalendarTabBar(selectedTab = selectedTab, onTabSelected = onTabSelected)
-            // DateRangeHeader sollte direkt unter den Tabs stehen, IMMER sichtbar
+            CalendarTabBar(
+                selectedTab = selectedTab.value,
+                onTabSelected = { calendarViewModel.setTab(it) })
             DateRangeHeader(
-                selectedTab = selectedTab,
+                selectedTab = selectedTab.value,
                 calendarViewModel = calendarViewModel,
                 onPrev = {
-                    when (selectedTab) {
+                    when (selectedTab.value) {
                         0 -> calendarViewModel.prevMonth()
                         1 -> calendarViewModel.prevWeek()
                         2 -> calendarViewModel.prevDay()
                     }
                 },
                 onNext = {
-                    when (selectedTab) {
+                    when (selectedTab.value) {
                         0 -> calendarViewModel.nextMonth()
                         1 -> calendarViewModel.nextWeek()
                         2 -> calendarViewModel.nextDay()
                     }
                 },
                 onToday = {
-                    when (selectedTab) {
+                    when (selectedTab.value) {
                         0 -> calendarViewModel.setTodayMonth()
                         1 -> calendarViewModel.setTodayWeek()
                         2 -> calendarViewModel.setTodayDay()
@@ -149,7 +150,7 @@ fun CalendarScreen(
             Spacer(Modifier.height(8.dp))
             if (events.value.isEmpty()) {
                 Text(stringResource(R.string.no_events_found), modifier = Modifier.padding(16.dp))
-            } else if (selectedTab == 2) {
+            } else if (selectedTab.value == 2) {
                 DayView(
                     navController = navController,
                     calendarViewModel = calendarViewModel,
@@ -158,7 +159,7 @@ fun CalendarScreen(
                 EventList(
                     navController = navController,
                     calendarViewModel = calendarViewModel,
-                    selectedTab = selectedTab
+                    selectedTab = selectedTab.value
                 )
             }
         }
@@ -352,6 +353,7 @@ fun DayView(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarTabBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
     val tabTitles = listOf(
@@ -359,7 +361,7 @@ fun CalendarTabBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
         stringResource(R.string.tab_week),
         stringResource(R.string.tab_day)
     )
-    TabRow(
+    PrimaryTabRow(
         selectedTabIndex = selectedTab,
         modifier = Modifier.semantics {
             collectionInfo = CollectionInfo(

@@ -31,7 +31,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,8 +42,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -63,7 +60,6 @@ import space.midnightthoughts.nordiccalendar.screens.EventDetailsView
 import space.midnightthoughts.nordiccalendar.screens.SettingsView
 import space.midnightthoughts.nordiccalendar.ui.theme.NordicCalendarTheme
 import space.midnightthoughts.nordiccalendar.util.OnboardingPrefs
-import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 
 sealed class Destinations(val route: String) {
     object Intro : Destinations("intro")
@@ -130,7 +126,6 @@ class MainActivity : ComponentActivity() {
                             )
                         ) { backStackEntry ->
                             CalendarView(
-                                backStackEntry = backStackEntry,
                                 navController = navController
                             )
                         }
@@ -270,21 +265,8 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
 
 @Composable
 fun CalendarView(
-    backStackEntry: NavBackStackEntry,
     navController: NavHostController
 ) {
-    val calendarViewModel: CalendarViewModel = hiltViewModel()
-
-    val selectedTab = remember(calendarViewModel) {
-        calendarViewModel.selectedTab
-    }.collectAsState(initial = 0)
-    val tabArg = backStackEntry.arguments?.getInt("tab")
-
-    LaunchedEffect(tabArg) {
-        if (tabArg != null) {
-            calendarViewModel.setTab(tabArg)
-        }
-    }
 
     AppScaffold(
         title = stringResource(R.string.app_name),
@@ -308,8 +290,6 @@ fun CalendarView(
         }
     ) { innerPadding ->
         CalendarScreen(
-            selectedTab = selectedTab.value,
-            onTabSelected = { calendarViewModel.setTab(it) },
             modifier = innerPadding,
             navController = navController,
         )

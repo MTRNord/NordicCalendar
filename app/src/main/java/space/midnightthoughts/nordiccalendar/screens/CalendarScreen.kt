@@ -167,6 +167,26 @@ fun CalendarScreen(
     }
 }
 
+fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
+    val sorted = events.sortedBy { it.startTime }
+    val active = mutableListOf<Pair<Event, Int>>() // Event, column
+    val result =
+        mutableListOf<Triple<Event, Int, Int>>() // Event, column, maxColumns
+    for (event in sorted) {
+        // Entferne abgelaufene Events
+        active.removeAll { it.first.endTime <= event.startTime }
+        // Finde freie Spalte
+        val usedColumns = active.map { it.second }.toSet()
+        val col =
+            (0..active.size).firstOrNull { it !in usedColumns } ?: active.size
+        active.add(event to col)
+        // maxColumns = aktuelle Anzahl aktiver Events
+        val maxColumns = active.size
+        result.add(Triple(event, col, maxColumns))
+    }
+    return result
+}
+
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun DayView(
@@ -175,7 +195,7 @@ fun DayView(
 ) {
     val events = remember(calendarViewModel) {
         calendarViewModel.events
-    }.collectAsState(initial = emptyList())
+    }.collectAsState()
 
     val hourHeightDp = 64.dp
     val timeColumnWidth = 64.dp
@@ -206,6 +226,12 @@ fun DayView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .semantics {
+                collectionInfo = CollectionInfo(
+                    rowCount = events.value.size,
+                    columnCount = 1,
+                )
+            }
     ) {
         val maxWidthPx = with(density) { maxWidth.toPx() }
         val lineThickness = 4.dp
@@ -214,12 +240,6 @@ fun DayView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics {
-                    collectionInfo = CollectionInfo(
-                        rowCount = events.value.size,
-                        columnCount = 1,
-                    )
-                }
         ) {
             for (hour in 0..24) { // Bis einschließlich 24, um 00:00 am Folgetag anzuzeigen
                 Row(
@@ -237,25 +257,6 @@ fun DayView(
                     HorizontalDivider(modifier = Modifier.weight(1f))
                 }
             }
-        }
-        fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
-            val sorted = events.sortedBy { it.startTime }
-            val active = mutableListOf<Pair<Event, Int>>() // Event, column
-            val result =
-                mutableListOf<Triple<Event, Int, Int>>() // Event, column, maxColumns
-            for (event in sorted) {
-                // Entferne abgelaufene Events
-                active.removeAll { it.first.endTime <= event.startTime }
-                // Finde freie Spalte
-                val usedColumns = active.map { it.second }.toSet()
-                val col =
-                    (0..active.size).firstOrNull { it !in usedColumns } ?: active.size
-                active.add(event to col)
-                // maxColumns = aktuelle Anzahl aktiver Events
-                val maxColumns = active.size
-                result.add(Triple(event, col, maxColumns))
-            }
-            return result
         }
 
         val eventColumns = assignColumns(events.value)

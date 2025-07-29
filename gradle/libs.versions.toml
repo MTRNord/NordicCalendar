@@ -18,6 +18,8 @@ hiltNavigationCompose = "1.2.0"
 maplibreCompose = "0.10.4"
 ktorVersion = "3.2.3"
 preferenceVersion = "2.1.0"
+accessibilityTestVersion = "1.8.3"
+testRulesVersion = "1.6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -48,6 +50,8 @@ ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serializatio
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktorVersion" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktorVersion" }
 compose-preference = { group = "me.zhanghai.compose.preference", name = "preference", version.ref = "preferenceVersion" }
+androidx-compose-ui-accessibility-test = { group = "androidx.compose.ui", name = "ui-test-junit4-accessibility", version.ref = "accessibilityTestVersion" }
+androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "testRulesVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

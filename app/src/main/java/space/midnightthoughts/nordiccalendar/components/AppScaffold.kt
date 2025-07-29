@@ -1,6 +1,7 @@
 package space.midnightthoughts.nordiccalendar.components
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.R
@@ -64,17 +66,23 @@ fun AppScaffold(
                     },
                     navigationIcon = {
                         if (isBackButtonVisible) {
-                            IconButton(onClick = {
-                                scope.launch { drawerState.close() }
-                                navController.popBackStack()
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    scope.launch { drawerState.close() }
+                                    navController.popBackStack()
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = stringResource(R.string.back)
                                 )
                             }
                         } else {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            IconButton(
+                                onClick = { scope.launch { drawerState.open() } },
+                                modifier = Modifier.size(48.dp)
+                            ) {
                                 Icon(
                                     Icons.Default.Menu,
                                     contentDescription = stringResource(R.string.menu)

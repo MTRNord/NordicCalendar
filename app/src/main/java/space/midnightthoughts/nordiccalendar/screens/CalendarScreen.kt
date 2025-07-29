@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -54,6 +55,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
@@ -349,12 +351,27 @@ fun CalendarTabBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
         stringResource(R.string.tab_week),
         stringResource(R.string.tab_day)
     )
-    TabRow(selectedTabIndex = selectedTab) {
+    TabRow(
+        selectedTabIndex = selectedTab,
+        modifier = Modifier.semantics {
+            collectionInfo = CollectionInfo(
+                rowCount = 1,
+                columnCount = tabTitles.size,
+            )
+        }
+    ) {
         tabTitles.forEachIndexed { index, title ->
             Tab(
                 selected = selectedTab == index,
                 onClick = { onTabSelected(index) },
-                text = { Text(title) }
+                text = { Text(title) },
+                modifier = Modifier
+                    .semantics {
+                        collectionItemInfo = CollectionItemInfo(
+                            0, 0, index, 0,
+                        )
+                    }
+                    .testTag("tab_$index")
             )
         }
     }
@@ -433,7 +450,10 @@ fun DateRangeHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(onClick = onPrev) {
+        IconButton(
+            onClick = onPrev,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.previous_period)
@@ -448,7 +468,10 @@ fun DateRangeHeader(
                 }
             }
         }
-        IconButton(onClick = onNext) {
+        IconButton(
+            onClick = onNext,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = stringResource(R.string.next_period)

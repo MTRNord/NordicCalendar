@@ -51,6 +51,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.components.AppScaffold
@@ -73,7 +75,7 @@ sealed class Destinations(val route: String) {
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val currentVersion = try {
@@ -83,50 +85,66 @@ class MainActivity : ComponentActivity() {
         }
         val showOnboarding = OnboardingPrefs.isOnboardingNeeded(this, currentVersion)
 
+
         setContent {
             NordicCalendarTheme {
                 val navController = rememberNavController()
-                NavHost(
-                    navController = navController,
-                    startDestination = if (showOnboarding) Destinations.Intro.route else Destinations.Calendar.route
-                ) {
-                    composable(Destinations.Intro.route) {
-                        IntroScreen(navController) { // Callback nach Abschluss
-                            OnboardingPrefs.setOnboardingDone(this@MainActivity, currentVersion)
-                            navController.navigate(Destinations.Calendar.route) {
-                                popUpTo(Destinations.Intro.route) { inclusive = true }
+
+                // TODO: Recheck calendar permissions and show dialog if not granted
+                val permissionsState = rememberMultiplePermissionsState(
+                    listOf(
+                        android.Manifest.permission.READ_CALENDAR,
+                        android.Manifest.permission.WRITE_CALENDAR
+                    ),
+                )
+
+                if (!permissionsState.allPermissionsGranted) {
+                    LaunchedEffect(Unit) {
+                        permissionsState.launchMultiplePermissionRequest()
+                    }
+                } else {
+                    NavHost(
+                        navController = navController,
+                        startDestination = if (showOnboarding) Destinations.Intro.route else Destinations.Calendar.route
+                    ) {
+                        composable(Destinations.Intro.route) {
+                            IntroScreen(navController) { // Callback nach Abschluss
+                                OnboardingPrefs.setOnboardingDone(this@MainActivity, currentVersion)
+                                navController.navigate(Destinations.Calendar.route) {
+                                    popUpTo(Destinations.Intro.route) { inclusive = true }
+                                }
                             }
                         }
-                    }
-                    composable(
-                        route = Destinations.Calendar.route,
-                        arguments = listOf(
-                            navArgument("tab") {
-                                type = NavType.IntType
-                                defaultValue = 0
-                            }
-                        )
-                    ) { backStackEntry ->
-                        CalendarView(
-                            backStackEntry = backStackEntry,
-                            navController = navController
-                        )
-                    }
-                    composable(Destinations.EventDetails.route) { backStackEntry ->
-                        EventDetailsView(
-                            backStackEntry = backStackEntry,
-                            navController = navController
-                        )
-                    }
-                    composable(Destinations.Settings.route) { backStackEntry ->
-                        SettingsView(
-                            navController = navController
-                        )
-                    }
-                    composable(Destinations.About.route) { backStackEntry ->
-                        AboutView(
-                            navController = navController
-                        )
+                        composable(
+                            route = Destinations.Calendar.route,
+                            arguments = listOf(
+                                navArgument("tab") {
+                                    type = NavType.IntType
+                                    defaultValue = 0
+                                }
+                            )
+                        ) { backStackEntry ->
+                            CalendarView(
+                                backStackEntry = backStackEntry,
+                                navController = navController
+                            )
+                        }
+                        composable(Destinations.EventDetails.route) { backStackEntry ->
+                            EventDetailsView(
+                                backStackEntry = backStackEntry,
+                                navController = navController
+                            )
+                        }
+                        composable(Destinations.Settings.route) { backStackEntry ->
+                            SettingsView(
+                                navController = navController
+                            )
+                        }
+                        composable(Destinations.About.route) { backStackEntry ->
+                            AboutView(
+                                navController = navController
+                            )
+                        }
                     }
                 }
             }

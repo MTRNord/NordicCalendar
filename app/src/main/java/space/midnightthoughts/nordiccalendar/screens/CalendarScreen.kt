@@ -305,8 +305,7 @@ fun DayView(
                 eventEndOverride = shownEnd
             )
         }
-        // "Jetzt"-Linie und Label, nur wenn im Tagesbereich
-        if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24) {
+        if (nowOffsetY >= 0f && nowOffsetY <= hourHeightPx * 24.5f) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -324,7 +323,8 @@ fun DayView(
                 ) {
                     Text(
                         Date(now).toInstant()
-                            .atZone(ZoneId.systemDefault()).toLocalDateTime().format(hourFormat),
+                            .atZone(ZoneId.systemDefault()).toLocalDateTime()
+                            .format(hourFormat),
                         color = MaterialTheme.colorScheme.onError,
                         style = MaterialTheme.typography.labelSmall
                     )
@@ -341,7 +341,7 @@ fun DayView(
                             0f,
                             size.height / 2
                         ),
-                        end = androidx.compose.ui.geometry.Offset(
+                        end = Offset(
                             size.width,
                             size.height / 2
                         ),

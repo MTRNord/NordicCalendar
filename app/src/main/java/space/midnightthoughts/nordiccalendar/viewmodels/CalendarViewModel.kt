@@ -33,6 +33,8 @@ class CalendarViewModel @Inject constructor(
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
+    private val _dateArg = MutableStateFlow<String?>(null)
+
     init {
         val tab = savedStateHandle.get<Int?>("tab")
         if (tab != null) {
@@ -41,13 +43,13 @@ class CalendarViewModel @Inject constructor(
         val dateArg = savedStateHandle.get<String?>("date")
         if (dateArg != null) {
             setDayFromString(dateArg)
+            _dateArg.value = dateArg
         }
     }
 
     fun setTab(tab: Int) {
         _selectedTab.value = tab
-        // Nur Standardzeitraum setzen, wenn Tab nicht Tag ist oder noch kein Tag gesetzt wurde
-        if (tab != 2 || startMillis.value == 0L) {
+        if (_dateArg.value == null) {
             val start = getDefaultStartMillis(tab)
             val end = getDefaultEndMillis(tab)
             repository.setTimeRange(start, end)

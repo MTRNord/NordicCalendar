@@ -47,14 +47,12 @@ import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
-import space.midnightthoughts.nordiccalendar.util.Calendar
 import space.midnightthoughts.nordiccalendar.util.Event
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 import java.time.ZoneId
@@ -390,36 +388,4 @@ private fun EventCard(
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun EventCardPreview() {
-    val sampleEvent = Event(
-        id = 1L,
-        eventId = 1L,
-        title = "Beispiel Event",
-        description = "Dies ist eine Beschreibung des Beispiel-Events.",
-        startTime = System.currentTimeMillis(),
-        endTime = System.currentTimeMillis() + 3600000, // 1 Stunde später
-        calendarId = 1L,
-        location = "Beispielort",
-        allDay = false,
-        organizer = "Beispielorganisator",
-        calendar = Calendar(
-            id = 1L,
-            name = "Beispielkalender",
-            color = 0xFF6200EE, // Beispiel-Farbe
-            selected = true,
-            accountName = "Beispielkonto",
-            accountType = "com.example",
-            syncEvents = true,
-            visible = true,
-            displayName = "Beispielkalender",
-        )
-    )
-    EventCard(
-        event = sampleEvent,
-        isCompact = false,
-    )
 }

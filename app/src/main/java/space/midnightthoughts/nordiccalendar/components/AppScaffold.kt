@@ -1,5 +1,6 @@
 package space.midnightthoughts.nordiccalendar.components
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -35,7 +36,8 @@ private fun AppScaffoldContent(
     onBackClick: (() -> Unit)? = null,
     floatingActionButton: (@Composable () -> Unit)? = null,
     content: @Composable (Modifier) -> Unit,
-    onMenuClick: (() -> Unit)? = null
+    onMenuClick: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -47,6 +49,7 @@ private fun AppScaffoldContent(
                         Text(title)
                     }
                 },
+                actions = actions,
                 navigationIcon = {
                     if (isBackButtonVisible) {
                         IconButton(
@@ -88,7 +91,8 @@ fun AppScaffold(
     navController: NavController,
     floatingActionButton: (@Composable () -> Unit)? = null,
     onBackClick: (() -> Unit)? = null,
-    content: @Composable (Modifier) -> Unit
+    actions: @Composable RowScope.() -> Unit = {},
+    content: @Composable (Modifier) -> Unit,
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -112,6 +116,7 @@ fun AppScaffold(
         ) {
             AppScaffoldContent(
                 title = title,
+                actions = actions,
                 isBackButtonVisible = isBackButtonVisible,
                 navController = navController,
                 onBackClick = {

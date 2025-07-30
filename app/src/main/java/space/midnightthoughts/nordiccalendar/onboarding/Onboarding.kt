@@ -37,11 +37,13 @@ data class OnBoardModel(
 val onBoardingData = listOf(
     // Explain the purpose of the app
     OnBoardModel(
+        imageRes = R.drawable.calendar_illustration,
         titleRes = R.string.onboarding_intro_title,
         descriptionRes = R.string.onboarding_intro_text
     ),
     // Ask for permissions
     OnBoardModel(
+        imageRes = R.drawable.permission_illustration,
         titleRes = R.string.onboarding_permissions_title,
         descriptionRes = R.string.onboarding_permissions_text,
         permissionRequest = listOf(

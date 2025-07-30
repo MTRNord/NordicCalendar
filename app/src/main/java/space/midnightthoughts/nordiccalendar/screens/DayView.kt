@@ -225,7 +225,8 @@ fun DayView(
             // Events (wie gehabt, optimiert)
             val eventColumns = remember(events.value, maxWidthPx) { assignColumns(events.value) }
             events.value.forEach { event ->
-                val triple = eventColumns.find { it.first.id == event.id }
+                val triple =
+                    eventColumns.find { it.first.eventId == event.eventId && it.first.calendar.id == event.calendar.id }
                 if (triple != null) {
                     val (event, col, maxColumns) = triple
                     val shownStart = maxOf(event.startTime, dayStart.value)
@@ -247,7 +248,7 @@ fun DayView(
                     val showStartTimeAsMidnight = shownStart == dayStart.value
                     val showEndTimeAsMidnight = shownEnd == dayEnd.value
 
-                    key(event.id) {
+                    key(event.eventId, event.calendar.id) {
                         Box(
                             modifier = Modifier
                                 .offset { IntOffset(offsetX, offsetY.toInt()) }

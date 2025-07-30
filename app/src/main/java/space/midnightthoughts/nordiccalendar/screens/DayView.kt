@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
+import space.midnightthoughts.nordiccalendar.Destinations
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
 import space.midnightthoughts.nordiccalendar.util.Event
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
@@ -257,7 +258,9 @@ fun DayView(
                                 event = event,
                                 isCompact = isCompact,
                                 onClick = {
-                                    navController.navigate("eventDetails/${event.eventId}?tab=2") {
+                                    navController.navigate(
+                                        Destinations.EventDetails.route + "/${event.eventId}?tab=2"
+                                    ) {
                                         launchSingleTop = true
                                         restoreState = true
                                     }

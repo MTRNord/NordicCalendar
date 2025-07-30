@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import space.midnightthoughts.nordiccalendar.data.CalendarRepository
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,13 +38,20 @@ class CalendarViewModel @Inject constructor(
         if (tab != null) {
             setTab(tab)
         }
+        val dateArg = savedStateHandle.get<String?>("date")
+        if (dateArg != null) {
+            setDayFromString(dateArg)
+        }
     }
 
     fun setTab(tab: Int) {
         _selectedTab.value = tab
-        val start = getDefaultStartMillis(tab)
-        val end = getDefaultEndMillis(tab)
-        repository.setTimeRange(start, end)
+        // Nur Standardzeitraum setzen, wenn Tab nicht Tag ist oder noch kein Tag gesetzt wurde
+        if (tab != 2 || startMillis.value == 0L) {
+            val start = getDefaultStartMillis(tab)
+            val end = getDefaultEndMillis(tab)
+            repository.setTimeRange(start, end)
+        }
     }
 
     private fun getDefaultStartMillis(tab: Int): Long {
@@ -253,6 +261,35 @@ class CalendarViewModel @Inject constructor(
         isRefreshing.value = true
         repository.refreshEvents(context).apply {
             isRefreshing.value = false
+        }
+    }
+
+    fun setDay(date: LocalDate) {
+        if (_selectedTab.value != 2) {
+            setTab(2)
+        }
+        val cal = java.util.Calendar.getInstance()
+        cal.set(java.util.Calendar.YEAR, date.year)
+        cal.set(java.util.Calendar.MONTH, date.monthValue - 1)
+        cal.set(java.util.Calendar.DAY_OF_MONTH, date.dayOfMonth)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        val start = cal.timeInMillis
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        val end = cal.timeInMillis
+        repository.setTimeRange(start, end)
+    }
+
+    fun setDayFromString(dateString: String?) {
+        if (dateString == null) return
+        try {
+            val date = LocalDate.parse(dateString)
+            setDay(date)
+        } catch (_: Exception) {
+            // Ignoriere ungültiges Datum
         }
     }
 }

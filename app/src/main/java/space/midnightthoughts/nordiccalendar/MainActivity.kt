@@ -138,6 +138,11 @@ class MainActivity : ComponentActivity() {
                                 navArgument("tab") {
                                     type = NavType.IntType
                                     defaultValue = 0
+                                },
+                                navArgument("date") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                    defaultValue = null
                                 }
                             )
                         ) { backStackEntry ->

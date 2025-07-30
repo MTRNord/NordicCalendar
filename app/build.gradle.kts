@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.accompanist.permissions)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.foundation.foundation)
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.autolinktext)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)

@@ -30,9 +30,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.components.DateRangeHeader
-import space.midnightthoughts.nordiccalendar.components.DayView
-import space.midnightthoughts.nordiccalendar.components.MonthView
-import space.midnightthoughts.nordiccalendar.components.WeekView
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 
 @SuppressLint("UnusedBoxWithConstraintsScope")

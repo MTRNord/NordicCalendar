@@ -1,4 +1,4 @@
-package space.midnightthoughts.nordiccalendar.components
+package space.midnightthoughts.nordiccalendar.screens
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background

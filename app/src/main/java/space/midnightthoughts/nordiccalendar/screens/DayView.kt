@@ -1,4 +1,4 @@
-package space.midnightthoughts.nordiccalendar.components
+package space.midnightthoughts.nordiccalendar.screens
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
+import space.midnightthoughts.nordiccalendar.util.Calendar
 import space.midnightthoughts.nordiccalendar.util.Event
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 import java.time.ZoneId
@@ -310,20 +312,20 @@ private fun EventCard(
     }
     val shape = if (noTopCorners && noBottomCorners) {
         MaterialTheme.shapes.medium.copy(
-            topStart = androidx.compose.foundation.shape.ZeroCornerSize,
-            topEnd = androidx.compose.foundation.shape.ZeroCornerSize,
-            bottomStart = androidx.compose.foundation.shape.ZeroCornerSize,
-            bottomEnd = androidx.compose.foundation.shape.ZeroCornerSize
+            topStart = ZeroCornerSize,
+            topEnd = ZeroCornerSize,
+            bottomStart = ZeroCornerSize,
+            bottomEnd = ZeroCornerSize
         )
     } else if (noBottomCorners) {
         MaterialTheme.shapes.medium.copy(
-            bottomStart = androidx.compose.foundation.shape.ZeroCornerSize,
-            bottomEnd = androidx.compose.foundation.shape.ZeroCornerSize
+            bottomStart = ZeroCornerSize,
+            bottomEnd = ZeroCornerSize
         )
     } else if (noTopCorners) {
         MaterialTheme.shapes.medium.copy(
-            topStart = androidx.compose.foundation.shape.ZeroCornerSize,
-            topEnd = androidx.compose.foundation.shape.ZeroCornerSize
+            topStart = ZeroCornerSize,
+            topEnd = ZeroCornerSize
         )
     } else {
         MaterialTheme.shapes.medium
@@ -404,7 +406,7 @@ fun EventCardPreview() {
         location = "Beispielort",
         allDay = false,
         organizer = "Beispielorganisator",
-        calendar = space.midnightthoughts.nordiccalendar.util.Calendar(
+        calendar = Calendar(
             id = 1L,
             name = "Beispielkalender",
             color = 0xFF6200EE, // Beispiel-Farbe

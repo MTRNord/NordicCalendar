@@ -1,4 +1,4 @@
-package space.midnightthoughts.nordiccalendar.components
+package space.midnightthoughts.nordiccalendar.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize

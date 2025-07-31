@@ -43,6 +43,9 @@ data class Event(
     val calendar: Calendar
 )
 
+// Reminder-Datenklasse
+data class Reminder(val minutes: Int, val method: Int)
+
 // Helper for the android calendar provider/CalendarContract
 class CalendarData {
 
@@ -348,5 +351,30 @@ class CalendarData {
         } else null
         cur?.close()
         return event
+    }
+
+    // Liefert alle Reminder (Vorlaufzeiten in Minuten) für ein Event
+    fun getRemindersForEvent(contentResolver: ContentResolver, eventId: Long): List<Reminder> {
+        val reminders = mutableListOf<Reminder>()
+        val projection = arrayOf(
+            CalendarContract.Reminders.MINUTES,
+            CalendarContract.Reminders.METHOD
+        )
+        val selection = "${CalendarContract.Reminders.EVENT_ID} = ?"
+        val selectionArgs = arrayOf(eventId.toString())
+        val cursor = contentResolver.query(
+            CalendarContract.Reminders.CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            null
+        )
+        while (cursor?.moveToNext() == true) {
+            val minutes = cursor.getInt(0)
+            val method = cursor.getInt(1)
+            reminders.add(Reminder(minutes, method))
+        }
+        cursor?.close()
+        return reminders
     }
 }

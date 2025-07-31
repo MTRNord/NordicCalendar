@@ -1,6 +1,7 @@
 package space.midnightthoughts.nordiccalendar.viewmodels
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.data.CalendarRepository
 import java.time.LocalDate
 import javax.inject.Inject
@@ -44,6 +46,13 @@ class CalendarViewModel @Inject constructor(
         if (dateArg != null) {
             setDayFromString(dateArg)
             _dateArg.value = dateArg
+        }
+        // Reminder-Benachrichtigungen immer aktuell halten (auch beim Init)
+        viewModelScope.launch {
+            repository.eventsFlow.collect { events ->
+                Log.d("CalendarViewModel", "Scheduling reminders for ${events.size} events")
+                repository.scheduleRemindersForEvents(context, events)
+            }
         }
     }
 
@@ -261,9 +270,11 @@ class CalendarViewModel @Inject constructor(
 
     fun refreshEvents() {
         isRefreshing.value = true
-        repository.refreshEvents(context).apply {
-            isRefreshing.value = false
-        }
+        repository.refreshEvents(context)
+        // Nach dem Aktualisieren der Events Reminder setzen
+        val events = repository.eventsFlow.value
+        repository.scheduleRemindersForEvents(context, events)
+        isRefreshing.value = false
     }
 
     fun setDay(date: LocalDate) {

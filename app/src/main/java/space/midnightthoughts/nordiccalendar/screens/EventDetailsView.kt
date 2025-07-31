@@ -370,7 +370,7 @@ fun EventDetailsView(
                     Text(
                         stringResource(
                             R.string.event_details,
-                            backStackEntry.arguments?.getString("eventId") ?: ""
+                            backStackEntry.arguments?.getLong("eventId") ?: ""
                         )
                     )
                     Text(

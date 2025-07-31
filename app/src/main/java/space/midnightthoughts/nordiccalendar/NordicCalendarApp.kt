@@ -37,7 +37,7 @@ class NordicCalendarApp : Application(), Configuration.Provider {
         Log.d("NordicCalendarApp", "Setting up periodic calendar sync work")
         val workRequest =
             PeriodicWorkRequestBuilder<CalendarSyncWorker>(
-                30,
+                15,
                 TimeUnit.MINUTES
             )
                 .build()

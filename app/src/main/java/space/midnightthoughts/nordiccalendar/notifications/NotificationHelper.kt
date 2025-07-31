@@ -51,6 +51,7 @@ object NotificationHelper {
         }
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigateToEventId", eventId)
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
@@ -74,11 +75,10 @@ object NotificationHelper {
                 )
             } ${timeFormat.format(endCal.time)}"
         }
-        val contentText = "Beginn: $timeText"
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.outline_calendar_clock_24)
             .setContentTitle(eventTitle)
-            .setContentText(contentText)
+            .setContentText(timeText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setCategory(CATEGORY_EVENT)

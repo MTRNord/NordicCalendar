@@ -84,6 +84,7 @@ class MainActivity : ComponentActivity() {
         }
         val showOnboarding = OnboardingPrefs.isOnboardingNeeded(this, currentVersion)
 
+        val navigateToEventId = intent.getLongExtra("navigateToEventId", -1)
 
         setContent {
             NordicCalendarTheme {
@@ -102,6 +103,11 @@ class MainActivity : ComponentActivity() {
                         permissionsState.launchMultiplePermissionRequest()
                     }
                 } else {
+                    LaunchedEffect(navigateToEventId) {
+                        if (navigateToEventId > 0) {
+                            navController.navigate("eventDetails/$navigateToEventId")
+                        }
+                    }
                     NavHost(
                         navController = navController,
                         startDestination = if (showOnboarding) Destinations.Intro.route else Destinations.Calendar.route,

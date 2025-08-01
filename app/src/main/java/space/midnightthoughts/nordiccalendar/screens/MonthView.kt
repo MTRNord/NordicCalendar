@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -48,7 +47,7 @@ import java.util.Locale
  *
  * @param modifier Modifier for styling and layout.
  * @param navController NavController for navigation actions.
- * @param calendarViewModel ViewModel providing calendar data and state.
+ * @param monthViewModel Specialized ViewModel for month view operations.
  */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,10 +55,10 @@ import java.util.Locale
 fun MonthView(
     modifier: Modifier = Modifier,
     navController: NavController,
-    calendarViewModel: CalendarViewModel,
+    monthViewModel: space.midnightthoughts.nordiccalendar.viewmodels.MonthViewModel,
 ) {
-    val events by calendarViewModel.events.collectAsState()
-    val startMillis by calendarViewModel.startMillis.collectAsState()
+    val events by monthViewModel.events.collectAsState()
+    val startMillis by monthViewModel.startMillis.collectAsState()
     val today = LocalDate.now()
     val zoneId = ZoneId.systemDefault()
     val firstDay = Instant.ofEpochMilli(startMillis).atZone(zoneId).toLocalDate()

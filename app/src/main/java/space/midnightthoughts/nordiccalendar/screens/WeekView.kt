@@ -12,7 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
+import space.midnightthoughts.nordiccalendar.viewmodels.WeekViewModel
 
 /**
  * WeekView displays a list of events for the current week.
@@ -20,17 +20,17 @@ import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
  *
  * @param modifier Modifier for styling and layout.
  * @param navController NavController for navigation actions.
- * @param calendarViewModel ViewModel providing calendar data and state.
+ * @param weekViewModel Specialized ViewModel for week view operations.
  */
 @Composable
 fun WeekView(
     modifier: Modifier = Modifier,
     navController: NavController,
-    calendarViewModel: CalendarViewModel,
+    weekViewModel: WeekViewModel,
 ) {
     // TODO: Implement WeekView
-    val events = remember(calendarViewModel) {
-        calendarViewModel.events
+    val events = remember(weekViewModel) {
+        weekViewModel.events
     }.collectAsState(initial = emptyList())
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {

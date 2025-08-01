@@ -48,23 +48,9 @@ fun CalendarScreen(
     navController: NavController,
 ) {
     /**
-     * ViewModel for calendar data and state.
+     * ViewModel coordinator for calendar data and state.
      */
     val calendarViewModel: CalendarViewModel = hiltViewModel()
-
-    /**
-     * State holding the list of events for the current view.
-     */
-    val events = remember(calendarViewModel) {
-        calendarViewModel.events
-    }.collectAsState(initial = emptyList())
-
-    /**
-     * State indicating whether a refresh is in progress.
-     */
-    val isRefreshing = remember(calendarViewModel) {
-        calendarViewModel.isRefreshing
-    }.collectAsState(initial = false)
 
     /**
      * State holding the currently selected tab (0=month, 1=week, 2=day).
@@ -74,6 +60,35 @@ fun CalendarScreen(
     }.collectAsState(initial = 0)
 
     /**
+     * Get the appropriate specialized view model based on selected tab.
+     */
+    val activeViewModel = when (selectedTab.value) {
+        0 -> calendarViewModel.monthViewModel
+        1 -> calendarViewModel.weekViewModel
+        2 -> calendarViewModel.dayViewModel
+        else -> calendarViewModel.monthViewModel
+    }
+
+    /**
+     * State holding the list of events for the current view.
+     */
+    val events = remember(selectedTab.value, calendarViewModel) {
+        when (selectedTab.value) {
+            0 -> calendarViewModel.monthViewModel.events
+            1 -> calendarViewModel.weekViewModel.events
+            2 -> calendarViewModel.dayViewModel.events
+            else -> calendarViewModel.monthViewModel.events
+        }
+    }.collectAsState(initial = emptyList())
+
+    /**
+     * State indicating whether a refresh is in progress.
+     */
+    val isRefreshing = remember(activeViewModel) {
+        activeViewModel.isRefreshing
+    }.collectAsState(initial = false)
+
+    /**
      * State for pull-to-refresh gesture.
      */
     val pullToRefreshState = rememberPullToRefreshState()
@@ -81,7 +96,7 @@ fun CalendarScreen(
         state = pullToRefreshState,
         modifier = modifier,
         onRefresh = {
-            calendarViewModel.refreshEvents()
+            activeViewModel.refreshEvents()
         },
         isRefreshing = isRefreshing.value,
         indicator = {
@@ -100,54 +115,36 @@ fun CalendarScreen(
                 onTabSelected = { calendarViewModel.setTab(it) })
             DateRangeHeader(
                 selectedTab = selectedTab.value,
-                calendarViewModel = calendarViewModel,
-                onPrev = {
-                    when (selectedTab.value) {
-                        0 -> calendarViewModel.prevMonth()
-                        1 -> calendarViewModel.prevWeek()
-                        2 -> calendarViewModel.prevDay()
-                    }
-                },
-                onNext = {
-                    when (selectedTab.value) {
-                        0 -> calendarViewModel.nextMonth()
-                        1 -> calendarViewModel.nextWeek()
-                        2 -> calendarViewModel.nextDay()
-                    }
-                },
-                onToday = {
-                    when (selectedTab.value) {
-                        0 -> calendarViewModel.setTodayMonth()
-                        1 -> calendarViewModel.setTodayWeek()
-                        2 -> calendarViewModel.setTodayDay()
-                    }
-                }
+                calendarViewModel = activeViewModel,
+                onPrev = { activeViewModel.navigateToPrevious() },
+                onNext = { activeViewModel.navigateToNext() },
+                onToday = { activeViewModel.navigateToToday() }
             )
             if (events.value.isEmpty()) {
                 Text(stringResource(R.string.no_events_found), modifier = Modifier.padding(16.dp))
-            } else if (selectedTab.value == 0) {
-                MonthView(
+            } else when (selectedTab.value) {
+                0 -> MonthView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp),
                     navController,
-                    calendarViewModel,
+                    calendarViewModel.monthViewModel,
                 )
-            } else if (selectedTab.value == 1) {
-                WeekView(
+
+                1 -> WeekView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp),
                     navController,
-                    calendarViewModel,
+                    calendarViewModel.weekViewModel,
                 )
-            } else if (selectedTab.value == 2) {
-                DayView(
+
+                2 -> DayView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp),
                     navController,
-                    calendarViewModel,
+                    calendarViewModel.dayViewModel,
                 )
             }
         }

@@ -54,7 +54,6 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
 import space.midnightthoughts.nordiccalendar.util.Event
-import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -197,21 +196,21 @@ private fun NowBar(
  *
  * @param modifier Modifier for styling and layout.
  * @param navController NavController for navigation actions.
- * @param calendarViewModel ViewModel providing calendar data and state.
+ * @param dayViewModel Specialized ViewModel for day view operations.
  */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun DayView(
     modifier: Modifier = Modifier,
     navController: NavController,
-    calendarViewModel: CalendarViewModel,
+    dayViewModel: space.midnightthoughts.nordiccalendar.viewmodels.DayViewModel,
 ) {
     val hourHeightDp = 64.dp
     val timeColumnWidth = 64.dp
     val density = LocalDensity.current
     val hourHeightPx = with(density) { hourHeightDp.toPx() }
-    val dayStart = remember(calendarViewModel) { calendarViewModel.startMillis }.collectAsState()
-    val dayEnd = remember(calendarViewModel) { calendarViewModel.endMillis }.collectAsState()
+    val dayStart = remember(dayViewModel) { dayViewModel.startMillis }.collectAsState()
+    val dayEnd = remember(dayViewModel) { dayViewModel.endMillis }.collectAsState()
     val appLocale = getCurrentAppLocale(LocalContext.current)
     val hourFormat = DateTimeFormatter.ofPattern("HH:mm", appLocale)
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -230,7 +229,7 @@ fun DayView(
         val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
         val scrollState = rememberScrollState(initial = scrollTo)
 
-        val events = remember(calendarViewModel) { calendarViewModel.events }.collectAsState()
+        val events = remember(dayViewModel) { dayViewModel.events }.collectAsState()
 
         BoxWithConstraints(
             modifier = Modifier

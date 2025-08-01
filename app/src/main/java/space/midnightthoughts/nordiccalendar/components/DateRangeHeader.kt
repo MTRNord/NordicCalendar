@@ -25,7 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
-import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
+import space.midnightthoughts.nordiccalendar.viewmodels.BaseCalendarViewModel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -39,7 +39,7 @@ import java.util.Date
  *   0 = month view, 1 = week view, 2 = day view.
  *
  * @param selectedTab The currently selected tab (0=month, 1=week, 2=day).
- * @param calendarViewModel The CalendarViewModel providing start and end millis for the range.
+ * @param calendarViewModel The BaseCalendarViewModel providing start and end millis for the range.
  * @param onPrev Callback for navigating to the previous period.
  * @param onNext Callback for navigating to the next period.
  * @param onToday Callback for jumping to today.
@@ -47,7 +47,7 @@ import java.util.Date
 @Composable
 fun DateRangeHeader(
     selectedTab: Int,
-    calendarViewModel: CalendarViewModel,
+    calendarViewModel: BaseCalendarViewModel,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit
@@ -102,26 +102,27 @@ fun DateRangeHeader(
         }
 
         1 -> {
-            val cal = Calendar.getInstance()
-            val today = cal.timeInMillis
-            today >= startMillis.value && today <= endMillis.value
+            val today = Calendar.getInstance()
+            val todayMillis = today.timeInMillis
+            todayMillis >= startMillis.value && todayMillis <= endMillis.value
         }
 
         2 -> {
-            val cal = Calendar.getInstance()
-            val startDay = Calendar.getInstance().apply { timeInMillis = startMillis.value }
-            cal.get(Calendar.YEAR) == startDay.get(Calendar.YEAR) &&
-                    cal.get(Calendar.DAY_OF_YEAR) == startDay.get(Calendar.DAY_OF_YEAR)
+            val today = Calendar.getInstance()
+            val startCal = Calendar.getInstance().apply { timeInMillis = startMillis.value }
+            today.get(Calendar.YEAR) == startCal.get(Calendar.YEAR) &&
+                    today.get(Calendar.DAY_OF_YEAR) == startCal.get(Calendar.DAY_OF_YEAR)
         }
 
         else -> false
     }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
             onClick = onPrev,
@@ -129,19 +130,28 @@ fun DateRangeHeader(
         ) {
             Icon(
                 Icons.Filled.ChevronLeft,
-                contentDescription =
-                    stringResource(R.string.previous_period)
+                contentDescription = stringResource(R.string.previous_period)
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(rangeText, style = MaterialTheme.typography.titleMedium)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = rangeText,
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+
             if (!isToday) {
-                Spacer(Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onToday) {
                     Text(stringResource(R.string.today))
                 }
             }
         }
+
         IconButton(
             onClick = onNext,
             modifier = Modifier.size(48.dp)

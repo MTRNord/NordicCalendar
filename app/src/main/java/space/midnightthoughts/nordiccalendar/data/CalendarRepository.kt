@@ -150,6 +150,7 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
                 val intent = Intent(context, NotificationReceiver::class.java).apply {
                     putExtra("eventId", event.eventId)
                     putExtra("eventTitle", event.title)
+                    putExtra("eventDescription", event.description)
                     putExtra("eventTime", event.startTime)
                     putExtra("eventEndTime", event.endTime)
                     putExtra("eventLocation", event.location)
@@ -202,6 +203,7 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
                 val intent = Intent(context, NotificationReceiver::class.java).apply {
                     putExtra("eventId", event.eventId)
                     putExtra("eventTitle", event.title)
+                    putExtra("eventDescription", event.description)
                     putExtra("eventTime", event.startTime)
                     putExtra("eventEndTime", event.endTime)
                     putExtra("eventLocation", event.location)

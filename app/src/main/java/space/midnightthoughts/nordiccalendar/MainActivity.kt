@@ -164,6 +164,9 @@ class MainActivity : ComponentActivity() {
                                     type = NavType.IntType
                                     defaultValue = 0
                                 }
+                            ),
+                            deepLinks = listOf(
+                                androidx.navigation.NavDeepLink("nordiccalendar://eventdetails/{eventId}")
                             )
                         ) { backStackEntry ->
                             EventDetailsView(

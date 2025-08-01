@@ -13,7 +13,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import space.midnightthoughts.nordiccalendar.MainActivity
 import space.midnightthoughts.nordiccalendar.R
 
 object NotificationHelper {
@@ -25,13 +24,14 @@ object NotificationHelper {
         context: Context,
         eventId: Long,
         eventTitle: String,
+        eventDescription: String? = "",
         eventTime: Long,
         eventEndTime: Long,
         eventLocation: String
     ) {
         Log.d(
             "NotificationHelper",
-            "showEventNotification: eventId=$eventId, eventTitle=$eventTitle, eventTime=$eventTime"
+            "showEventNotification: eventId=$eventId, eventTitle=$eventTitle, eventTime=$eventTime, eventDescription=$eventDescription, eventEndTime=$eventEndTime, eventLocation=$eventLocation"
         )
         createNotificationChannel(context)
         // Prüfe Berechtigung für Benachrichtigungen (ab Android 13)
@@ -49,9 +49,10 @@ object NotificationHelper {
                 return
             }
         }
-        val intent = Intent(context, MainActivity::class.java).apply {
+        // Deep Link Intent für EventDetails
+        val deepLinkUri = "nordiccalendar://eventdetails/$eventId".toUri()
+        val intent = Intent(Intent.ACTION_VIEW, deepLinkUri).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("navigateToEventId", eventId)
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
@@ -67,13 +68,13 @@ object NotificationHelper {
         val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
         val dateFormat = android.text.format.DateFormat.getDateFormat(context)
         val timeText = if (sameDay) {
-            "${timeFormat.format(startCal.time)}-${timeFormat.format(endCal.time)}"
+            "${timeFormat.format(startCal.time)} — ${timeFormat.format(endCal.time)} ${eventDescription}"
         } else {
-            "${dateFormat.format(startCal.time)} ${timeFormat.format(startCal.time)} - ${
+            "${dateFormat.format(startCal.time)} ${timeFormat.format(startCal.time)} — ${
                 dateFormat.format(
                     endCal.time
                 )
-            } ${timeFormat.format(endCal.time)}"
+            } ${timeFormat.format(endCal.time)} ${eventDescription}"
         }
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.outline_calendar_clock_24)

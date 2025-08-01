@@ -1,18 +1,11 @@
 package space.midnightthoughts.nordiccalendar.viewmodels
 
-import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.data.CalendarRepository
-import space.midnightthoughts.nordiccalendar.util.Event
 
 /**
  * Base class for calendar view models providing common functionality for event management,
@@ -51,23 +44,6 @@ abstract class BaseCalendarViewModel(
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     /**
-     * StateFlow of the current list of events for this view's time range.
-     * The context is passed as a parameter to avoid holding a reference to it.
-     */
-    fun getEventsFlow(context: Context): StateFlow<List<Event>> = combine(
-        repository.calendarsFlow,
-        _startMillis,
-        _endMillis
-    ) { calendars, start, end ->
-        val selectedIds = calendars.filter { it.selected }.map { it.id }
-        repository.getEventsForCalendars(context, selectedIds, start, end)
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        emptyList()
-    )
-
-    /**
      * Sets the time range for this view and validates it.
      * Subclasses should override this to enforce their specific time range requirements.
      *
@@ -97,17 +73,6 @@ abstract class BaseCalendarViewModel(
         _startMillis.value = currentStart + 1
         _startMillis.value = currentStart
         _isRefreshing.value = false
-    }
-
-    /**
-     * Schedules reminders for the given events.
-     * The context is passed as a parameter to avoid holding a reference to it.
-     */
-    fun scheduleRemindersForEvents(context: Context, events: List<Event>) {
-        viewModelScope.launch {
-            Log.d("BaseCalendarViewModel", "Scheduling reminders for ${events.size} events")
-            repository.scheduleRemindersForEvents(context, events)
-        }
     }
 
     /**

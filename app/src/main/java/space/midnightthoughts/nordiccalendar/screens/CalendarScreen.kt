@@ -15,6 +15,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +31,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.components.DateRangeHeader
+import space.midnightthoughts.nordiccalendar.util.Event
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
+import space.midnightthoughts.nordiccalendar.viewmodels.DayViewModel
+import space.midnightthoughts.nordiccalendar.viewmodels.MonthViewModel
+import space.midnightthoughts.nordiccalendar.viewmodels.WeekViewModel
 
 /**
  * CalendarScreen is the main composable for displaying the calendar view.
@@ -55,54 +60,65 @@ fun CalendarScreen(
     /**
      * State holding the currently selected tab (0=month, 1=week, 2=day).
      */
-    val selectedTab = remember(calendarViewModel) {
-        calendarViewModel.selectedTab
-    }.collectAsState(initial = 0)
+    val selectedTab by calendarViewModel.selectedTab.collectAsState()
 
     /**
      * Get the appropriate specialized view model based on selected tab.
      */
-    val activeViewModel = when (selectedTab.value) {
-        0 -> calendarViewModel.monthViewModel
-        1 -> calendarViewModel.weekViewModel
-        2 -> calendarViewModel.dayViewModel
-        else -> calendarViewModel.monthViewModel
+    val activeViewModel = remember(selectedTab) {
+        when (selectedTab) {
+            0 -> calendarViewModel.monthViewModel
+            1 -> calendarViewModel.weekViewModel
+            2 -> calendarViewModel.dayViewModel
+            else -> calendarViewModel.monthViewModel
+        }
     }
 
     /**
-     * State holding the list of events for the current view.
+     * Collect events state from the main CalendarViewModel
      */
-    val events = remember(selectedTab.value, calendarViewModel) {
-        when (selectedTab.value) {
-            0 -> calendarViewModel.monthViewModel.events
-            1 -> calendarViewModel.weekViewModel.events
-            2 -> calendarViewModel.dayViewModel.events
-            else -> calendarViewModel.monthViewModel.events
-        }
-    }.collectAsState(initial = emptyList())
+    val eventsList by calendarViewModel.events.collectAsState()
 
     /**
      * State indicating whether a refresh is in progress.
      */
-    val isRefreshing = remember(activeViewModel) {
-        activeViewModel.isRefreshing
-    }.collectAsState(initial = false)
+    val isRefreshing by calendarViewModel.isRefreshing.collectAsState()
 
     /**
      * State for pull-to-refresh gesture.
      */
     val pullToRefreshState = rememberPullToRefreshState()
+
+    // Memoized callbacks to prevent recomposition
+    val onRefresh = remember(calendarViewModel) {
+        { calendarViewModel.refreshEvents() }
+    }
+
+    val onTabSelected = remember(calendarViewModel) {
+        { tab: Int -> calendarViewModel.setTab(tab) }
+    }
+
+    val onPrevious = remember(activeViewModel) {
+        { activeViewModel.navigateToPrevious() }
+    }
+
+    val onNext = remember(activeViewModel) {
+        { activeViewModel.navigateToNext() }
+    }
+
+    val onToday = remember(activeViewModel) {
+        { activeViewModel.navigateToToday() }
+    }
+
     PullToRefreshBox(
         state = pullToRefreshState,
         modifier = modifier,
-        onRefresh = {
-            activeViewModel.refreshEvents()
-        },
-        isRefreshing = isRefreshing.value,
+        onRefresh = onRefresh,
+        isRefreshing = isRefreshing,
         indicator = {
             Indicator(
                 modifier = Modifier.align(Alignment.TopCenter),
-                isRefreshing = isRefreshing.value,
+                isRefreshing = isRefreshing,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 state = pullToRefreshState
@@ -111,42 +127,71 @@ fun CalendarScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             CalendarTabBar(
-                selectedTab = selectedTab.value,
-                onTabSelected = { calendarViewModel.setTab(it) })
-            DateRangeHeader(
-                selectedTab = selectedTab.value,
-                calendarViewModel = activeViewModel,
-                onPrev = { activeViewModel.navigateToPrevious() },
-                onNext = { activeViewModel.navigateToNext() },
-                onToday = { activeViewModel.navigateToToday() }
+                selectedTab = selectedTab,
+                onTabSelected = onTabSelected
             )
-            if (events.value.isEmpty()) {
-                Text(stringResource(R.string.no_events_found), modifier = Modifier.padding(16.dp))
-            } else when (selectedTab.value) {
-                0 -> MonthView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    navController,
-                    calendarViewModel.monthViewModel,
-                )
+            DateRangeHeader(
+                selectedTab = selectedTab,
+                calendarViewModel = activeViewModel,
+                onPrev = onPrevious,
+                onNext = onNext,
+                onToday = onToday
+            )
 
-                1 -> WeekView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    navController,
-                    calendarViewModel.weekViewModel,
-                )
+            CalendarContent(
+                selectedTab = selectedTab,
+                eventsList = eventsList,
+                navController = navController,
+                monthViewModel = calendarViewModel.monthViewModel,
+                weekViewModel = calendarViewModel.weekViewModel,
+                dayViewModel = calendarViewModel.dayViewModel
+            )
+        }
+    }
+}
 
-                2 -> DayView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    navController,
-                    calendarViewModel.dayViewModel,
-                )
-            }
+@Composable
+private fun CalendarContent(
+    selectedTab: Int,
+    eventsList: List<Event>,
+    navController: NavController,
+    monthViewModel: MonthViewModel,
+    weekViewModel: WeekViewModel,
+    dayViewModel: DayViewModel
+) {
+    if (eventsList.isEmpty()) {
+        Text(
+            text = stringResource(R.string.no_events_found),
+            modifier = Modifier.padding(16.dp)
+        )
+    } else {
+        when (selectedTab) {
+            0 -> MonthView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                navController = navController,
+                monthViewModel = monthViewModel,
+                events = eventsList
+            )
+
+            1 -> WeekView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                navController = navController,
+                weekViewModel = weekViewModel,
+                events = eventsList
+            )
+
+            2 -> DayView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                navController = navController,
+                dayViewModel = dayViewModel,
+                events = eventsList
+            )
         }
     }
 }

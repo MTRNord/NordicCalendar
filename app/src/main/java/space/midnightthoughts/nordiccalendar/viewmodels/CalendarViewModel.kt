@@ -3,12 +3,19 @@ package space.midnightthoughts.nordiccalendar.viewmodels
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.data.CalendarRepository
+import space.midnightthoughts.nordiccalendar.util.Event
 import javax.inject.Inject
 
 /**
@@ -34,21 +41,21 @@ class CalendarViewModel @Inject constructor(
      * Specialized ViewModel for month view with month-specific time range management.
      */
     val monthViewModel: MonthViewModel by lazy {
-        MonthViewModel(context, repository, savedStateHandle)
+        MonthViewModel(repository, savedStateHandle)
     }
 
     /**
      * Specialized ViewModel for week view with week-specific time range management.
      */
     val weekViewModel: WeekViewModel by lazy {
-        WeekViewModel(context, repository, savedStateHandle)
+        WeekViewModel(repository, savedStateHandle)
     }
 
     /**
      * Specialized ViewModel for day view with day-specific time range management.
      */
     val dayViewModel: DayViewModel by lazy {
-        DayViewModel(context, repository, savedStateHandle)
+        DayViewModel(repository, savedStateHandle)
     }
 
     /**
@@ -73,24 +80,44 @@ class CalendarViewModel @Inject constructor(
         }
 
     /**
-     * Convenience properties that delegate to the current view model.
+     * Centralized events flow that handles all event loading and reminder scheduling.
      */
-    val events
-        get() = when (_selectedTab.value) {
-            0 -> monthViewModel.events
-            1 -> weekViewModel.events
-            2 -> dayViewModel.events
-            else -> monthViewModel.events
-        }
-    
-    val startMillis get() = currentViewModel.startMillis
-    val endMillis get() = currentViewModel.endMillis
-    val isRefreshing get() = currentViewModel.isRefreshing
+    val events: StateFlow<List<Event>> = combine(
+        repository.calendarsFlow,
+        currentViewModel.startMillis,
+        currentViewModel.endMillis
+    ) { calendars, start, end ->
+        val selectedIds = calendars.filter { it.selected }.map { it.id }
+        repository.getEventsForCalendars(context, selectedIds, start, end)
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    )
+
+    /**
+     * StateFlow indicating if a refresh is in progress.
+     */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     init {
         val tab = savedStateHandle.get<Int?>("tab")
         if (tab != null) {
             setTab(tab)
+        }
+
+        // Schedule reminders in background when events change
+        viewModelScope.launch(Dispatchers.IO) {
+            events.collect { eventList ->
+                if (eventList.isNotEmpty()) {
+                    try {
+                        repository.scheduleRemindersForEvents(context, eventList)
+                    } catch (e: Exception) {
+                        // Handle exception
+                    }
+                }
+            }
         }
     }
 
@@ -130,6 +157,8 @@ class CalendarViewModel @Inject constructor(
      * Delegates refresh to the current view model.
      */
     fun refreshEvents() {
+        _isRefreshing.value = true
         currentViewModel.refreshEvents()
+        _isRefreshing.value = false
     }
 }

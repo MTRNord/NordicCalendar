@@ -1,15 +1,9 @@
 package space.midnightthoughts.nordiccalendar.viewmodels
 
-import android.content.Context
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.data.CalendarRepository
-import space.midnightthoughts.nordiccalendar.util.Event
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -19,24 +13,12 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class MonthViewModel @Inject constructor(
-    @param:ApplicationContext private val context: Context,
     repository: CalendarRepository,
     savedStateHandle: SavedStateHandle
 ) : BaseCalendarViewModel(repository) {
 
-    /**
-     * StateFlow of events for the current month.
-     */
-    val events: StateFlow<List<Event>> by lazy { getEventsFlow(context) }
-
     init {
         initializeDefaultTimeRange()
-        // Schedule reminders when events change
-        viewModelScope.launch {
-            events.collect { eventList ->
-                scheduleRemindersForEvents(context, eventList)
-            }
-        }
     }
 
     override fun initializeDefaultTimeRange() {
@@ -112,24 +94,12 @@ class MonthViewModel @Inject constructor(
  */
 @HiltViewModel
 class WeekViewModel @Inject constructor(
-    @param:ApplicationContext private val context: Context,
     repository: CalendarRepository,
     savedStateHandle: SavedStateHandle
 ) : BaseCalendarViewModel(repository) {
 
-    /**
-     * StateFlow of events for the current week.
-     */
-    val events: StateFlow<List<Event>> by lazy { getEventsFlow(context) }
-
     init {
         initializeDefaultTimeRange()
-        // Schedule reminders when events change
-        viewModelScope.launch {
-            events.collect { eventList ->
-                scheduleRemindersForEvents(context, eventList)
-            }
-        }
     }
 
     override fun initializeDefaultTimeRange() {
@@ -203,15 +173,9 @@ class WeekViewModel @Inject constructor(
  */
 @HiltViewModel
 class DayViewModel @Inject constructor(
-    @param:ApplicationContext private val context: Context,
     repository: CalendarRepository,
     savedStateHandle: SavedStateHandle
 ) : BaseCalendarViewModel(repository) {
-
-    /**
-     * StateFlow of events for the current day.
-     */
-    val events: StateFlow<List<Event>> by lazy { getEventsFlow(context) }
 
     init {
         // Check for date argument from navigation
@@ -220,12 +184,6 @@ class DayViewModel @Inject constructor(
             navigateToDateFromString(dateArg)
         } else {
             initializeDefaultTimeRange()
-        }
-        // Schedule reminders when events change
-        viewModelScope.launch {
-            events.collect { eventList ->
-                scheduleRemindersForEvents(context, eventList)
-            }
         }
     }
 

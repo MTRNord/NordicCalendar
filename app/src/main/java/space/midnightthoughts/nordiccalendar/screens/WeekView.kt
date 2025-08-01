@@ -7,34 +7,30 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import space.midnightthoughts.nordiccalendar.util.Event
 import space.midnightthoughts.nordiccalendar.viewmodels.WeekViewModel
 
 /**
- * WeekView displays a list of events for the current week.
- * Each event is shown as a clickable text item that navigates to the event details view.
+ * WeekView displays the calendar in a weekly format, showing events for the current week.
  *
  * @param modifier Modifier for styling and layout.
  * @param navController NavController for navigation actions.
  * @param weekViewModel Specialized ViewModel for week view operations.
+ * @param events List of events to display.
  */
 @Composable
 fun WeekView(
     modifier: Modifier = Modifier,
     navController: NavController,
     weekViewModel: WeekViewModel,
+    events: List<Event> = emptyList()
 ) {
     // TODO: Implement WeekView
-    val events = remember(weekViewModel) {
-        weekViewModel.events
-    }.collectAsState(initial = emptyList())
-
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(events.value) { event ->
+        items(events) { event ->
             Text(
                 event.title, modifier = Modifier
                     .padding(8.dp)

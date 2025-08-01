@@ -204,11 +204,13 @@ fun DayView(
     modifier: Modifier = Modifier,
     navController: NavController,
     dayViewModel: space.midnightthoughts.nordiccalendar.viewmodels.DayViewModel,
+    events: List<space.midnightthoughts.nordiccalendar.util.Event> = emptyList()
 ) {
     val hourHeightDp = 64.dp
     val timeColumnWidth = 64.dp
     val density = LocalDensity.current
     val hourHeightPx = with(density) { hourHeightDp.toPx() }
+
     val dayStart = remember(dayViewModel) { dayViewModel.startMillis }.collectAsState()
     val dayEnd = remember(dayViewModel) { dayViewModel.endMillis }.collectAsState()
     val appLocale = getCurrentAppLocale(LocalContext.current)
@@ -229,15 +231,13 @@ fun DayView(
         val scrollTo = (nowOffsetY - visibleHeightPx / 2).toInt().coerceAtLeast(0)
         val scrollState = rememberScrollState(initial = scrollTo)
 
-        val events = remember(dayViewModel) { dayViewModel.events }.collectAsState()
-
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .semantics {
                     collectionInfo = CollectionInfo(
-                        rowCount = events.value.size,
+                        rowCount = events.size,
                         columnCount = 1,
                     )
                 }
@@ -253,8 +253,8 @@ fun DayView(
             )
 
             // Events (optimized as before)
-            val eventColumns = remember(events.value, maxWidthPx) { assignColumns(events.value) }
-            events.value.forEach { event ->
+            val eventColumns = remember(events, maxWidthPx) { assignColumns(events) }
+            events.forEach { event ->
                 val triple =
                     eventColumns.find { it.first.eventId == event.eventId && it.first.calendar.id == event.calendar.id }
                 if (triple != null) {

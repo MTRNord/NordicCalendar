@@ -41,13 +41,13 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * MonthView displays a monthly calendar grid with days and events.
- * It highlights the current day, shows a grid of days for the month, and displays up to three events per day as compact chips.
- * If there are more than three events, a "+N more" chip is shown.
+ * MonthView displays the calendar in a monthly format, showing all days of the month
+ * with events and provides navigation to view event details.
  *
  * @param modifier Modifier for styling and layout.
  * @param navController NavController for navigation actions.
  * @param monthViewModel Specialized ViewModel for month view operations.
+ * @param events List of events to display.
  */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,8 +56,8 @@ fun MonthView(
     modifier: Modifier = Modifier,
     navController: NavController,
     monthViewModel: space.midnightthoughts.nordiccalendar.viewmodels.MonthViewModel,
+    events: List<space.midnightthoughts.nordiccalendar.util.Event> = emptyList()
 ) {
-    val events by monthViewModel.events.collectAsState()
     val startMillis by monthViewModel.startMillis.collectAsState()
     val today = LocalDate.now()
     val zoneId = ZoneId.systemDefault()

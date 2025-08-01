@@ -76,7 +76,7 @@ sealed class Destinations(val route: String) {
      * @param tab The index of the selected tab (default is 0).
      * @param date The date to display in the calendar (optional).
      */
-    object Calendar : Destinations("calendar?tab={tab}")
+    object Calendar : Destinations("calendar?tab={tab}&date={date}")
     object Settings : Destinations("settings")
     object About : Destinations("about")
     object EventDetails : Destinations("eventDetails/{eventId}")

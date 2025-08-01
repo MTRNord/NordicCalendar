@@ -1,6 +1,7 @@
 package space.midnightthoughts.nordiccalendar.viewmodels
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.data.CalendarRepository
 import space.midnightthoughts.nordiccalendar.util.Event
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
@@ -174,5 +176,27 @@ class CalendarViewModel @Inject constructor(
         _isRefreshing.value = true
         currentViewModel.refreshEvents()
         _isRefreshing.value = false
+    }
+
+    fun setTabAndDate(tabFromNav: Int, dateFromNav: String?) {
+        setTab(tabFromNav)
+        dateFromNav?.let { date ->
+            when (tabFromNav) {
+                0 -> {}
+                1 -> {}
+                2 -> {
+                    val parsedLocalDate: LocalDate = try {
+                        LocalDate.parse(date)
+                    } catch (e: Exception) {
+                        Log.e("CalendarViewModel", "Invalid date format: $date", e)
+                        LocalDate.now()
+                    }
+                    dayViewModel.navigateToDate(parsedLocalDate)
+                }
+            }
+        } ?: run {
+            // If no date is provided, navigate to today
+            currentViewModel.navigateToToday()
+        }
     }
 }

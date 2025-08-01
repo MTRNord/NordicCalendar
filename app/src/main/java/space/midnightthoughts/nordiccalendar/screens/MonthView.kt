@@ -269,7 +269,7 @@ private fun MonthDayCell(
                         shape = RoundedCornerShape(4.dp)
                     )
                     .clickable {
-                        // Navigate to calendar with day view tab when clicking "+N more"
+                        // Navigate to calendar with day view tab and specific date
                         date?.let {
                             navController.navigate("calendar?tab=2&date=${it}") {
                                 launchSingleTop = true

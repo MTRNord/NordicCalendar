@@ -14,6 +14,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -56,6 +57,16 @@ fun CalendarScreen(
      * ViewModel coordinator for calendar data and state.
      */
     val calendarViewModel: CalendarViewModel = hiltViewModel()
+
+    // Get tab and date parameters from navigation and set them in the ViewModel
+    val backStackEntry = navController.currentBackStackEntry
+    val tabFromNav = backStackEntry?.arguments?.getInt("tab") ?: 0
+    val dateFromNav = backStackEntry?.arguments?.getString("date")
+
+    // Use LaunchedEffect to handle navigation parameters only once
+    LaunchedEffect(backStackEntry?.destination?.route, tabFromNav, dateFromNav) {
+        calendarViewModel.setTabAndDate(tabFromNav, dateFromNav)
+    }
 
     /**
      * State holding the currently selected tab (0=month, 1=week, 2=day).

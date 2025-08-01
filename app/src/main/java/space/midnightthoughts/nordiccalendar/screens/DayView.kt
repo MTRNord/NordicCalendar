@@ -53,15 +53,18 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import space.midnightthoughts.nordiccalendar.getCurrentAppLocale
+import space.midnightthoughts.nordiccalendar.util.ColorUtils
 import space.midnightthoughts.nordiccalendar.util.Event
+import space.midnightthoughts.nordiccalendar.viewmodels.DayViewModel
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.PriorityQueue
 
 /**
- * Assigns columns to events so that overlapping events are displayed side by side.
- * Each event is assigned a column index and the total number of columns for its overlap group.
+ * Improved algorithm to assign columns to events so that overlapping events are displayed side by side.
+ * This is ported from WeekView and provides better column allocation.
  *
  * @param events List of events to assign columns to.
  * @return List of Triple<Event, columnIndex, maxColumns> for layout.
@@ -73,7 +76,6 @@ private fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
     val active = PriorityQueue(compareBy<ActiveEvent> { it.endTime })
     val freeColumns = PriorityQueue<Int>()
     val result = mutableListOf<Triple<Event, Int, Int>>()
-    var maxColumns = 0
 
     for (event in sorted) {
         // Remove expired events and free their columns
@@ -82,10 +84,15 @@ private fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
         }
         val col = if (freeColumns.isNotEmpty()) freeColumns.poll() else active.size
         active.add(ActiveEvent(event.endTime, col))
-        maxColumns = maxOf(maxColumns, active.size)
+
+        // Calculate maxColumns for all concurrent events
+        val maxColumns = active.size
         result.add(Triple(event, col, maxColumns))
     }
-    return result
+
+    // Update maxColumns for all events to ensure consistent layout
+    val maxColumnsGlobal = result.maxOfOrNull { it.third } ?: 1
+    return result.map { (event, col, _) -> Triple(event, col, maxColumnsGlobal) }
 }
 
 /**
@@ -203,8 +210,8 @@ private fun NowBar(
 fun DayView(
     modifier: Modifier = Modifier,
     navController: NavController,
-    dayViewModel: space.midnightthoughts.nordiccalendar.viewmodels.DayViewModel,
-    events: List<space.midnightthoughts.nordiccalendar.util.Event> = emptyList()
+    dayViewModel: DayViewModel,
+    events: List<Event> = emptyList()
 ) {
     val hourHeightDp = 64.dp
     val timeColumnWidth = 64.dp
@@ -221,8 +228,15 @@ fun DayView(
         now = System.currentTimeMillis()
         delay(1000)
     }
-    val nowMinutes = ((now - dayStart.value) / 60000f)
-    val nowOffsetY = (nowMinutes / 60f) * hourHeightPx
+
+    // Fix: Calculate now offset more precisely to align with grid
+    val zoneId = ZoneId.systemDefault()
+    val todayStart = LocalDate.now().atStartOfDay(zoneId).toInstant().toEpochMilli()
+    val nowMinutes = ((now - todayStart) / 60000f)
+
+    // Align with grid by using exact same calculation as hour grid positions
+    val nowOffsetY = nowMinutes * (hourHeightPx / 60f)
+
 
     BoxWithConstraints(
         modifier = modifier
@@ -361,6 +375,14 @@ private fun EventCard(
     val endDate = remember(eventEndOverride.takeIf { it > 0L } ?: event.endTime) {
         Date(eventEndOverride.takeIf { it > 0L } ?: event.endTime)
     }
+
+    // Use calendar color for background and calculate contrasting text color
+    val backgroundColor =
+        ColorUtils.longToColor(event.calendar.color)
+    val textColor = ColorUtils.getContrastingTextColor(
+        backgroundColor
+    )
+
     val shape = if (noTopCorners && noBottomCorners) {
         MaterialTheme.shapes.medium.copy(
             topStart = ZeroCornerSize,
@@ -381,6 +403,7 @@ private fun EventCard(
     } else {
         MaterialTheme.shapes.medium
     }
+
     Card(
         modifier = modifier
             .defaultMinSize(minHeight = 24.dp)
@@ -391,7 +414,9 @@ private fun EventCard(
                 )
             }
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
+        ),
         border = BorderStroke(
             1.dp,
             color = MaterialTheme.colorScheme.outline
@@ -411,6 +436,7 @@ private fun EventCard(
                 event.title,
                 overflow = TextOverflow.Ellipsis,
                 style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge,
+                color = textColor,
                 modifier = Modifier.semantics { heading() }
             )
             if (!isCompact) {
@@ -428,13 +454,14 @@ private fun EventCard(
                 Text(
                     "$startTimeText - $endTimeText",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = textColor.copy(alpha = 0.9f)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 if (!event.description.isNullOrBlank()) {
                     Text(
                         event.description,
                         style = MaterialTheme.typography.bodyMedium,
+                        color = textColor.copy(alpha = 0.8f),
                         overflow = TextOverflow.Ellipsis
                     )
                 }

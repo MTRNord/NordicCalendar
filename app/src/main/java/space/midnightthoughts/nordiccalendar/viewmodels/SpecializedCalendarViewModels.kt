@@ -132,8 +132,11 @@ class WeekViewModel @Inject constructor(
      * Week starts on Monday and ends on Sunday.
      */
     private fun setWeekRange(cal: java.util.Calendar) {
+        // Set first day of week to Monday (2 = Monday in Calendar)
+        cal.firstDayOfWeek = java.util.Calendar.MONDAY
+
         // Start: Monday of the week at 00:00:00
-        cal.set(java.util.Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
+        cal.set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY)
         cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
         cal.set(java.util.Calendar.MINUTE, 0)
         cal.set(java.util.Calendar.SECOND, 0)
@@ -141,7 +144,7 @@ class WeekViewModel @Inject constructor(
         val start = cal.timeInMillis
 
         // End: Sunday of the week at 23:59:59.999
-        cal.add(java.util.Calendar.DAY_OF_WEEK, 6)
+        cal.set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.SUNDAY)
         cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
         cal.set(java.util.Calendar.MINUTE, 59)
         cal.set(java.util.Calendar.SECOND, 59)

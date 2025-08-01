@@ -42,6 +42,7 @@
     <string name="nominatim_url_label">OpenStreetMap Nominatim URL</string>
     <string name="save">Speichern</string>
     <string name="event_duration">Dauer: %1$s</string>
+    <string name="events_more">+%1$d weitere</string>
 
     <!-- Notification strings -->
     <string name="notification_channel_name">Kalender-Erinnerungen</string>

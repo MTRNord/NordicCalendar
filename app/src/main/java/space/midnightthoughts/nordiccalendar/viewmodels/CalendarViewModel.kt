@@ -81,13 +81,27 @@ class CalendarViewModel @Inject constructor(
 
     /**
      * Centralized events flow that handles all event loading and reminder scheduling.
+     * Now properly reacts to tab changes and time range updates from all ViewModels.
      */
     val events: StateFlow<List<Event>> = combine(
         repository.calendarsFlow,
-        currentViewModel.startMillis,
-        currentViewModel.endMillis
-    ) { calendars, start, end ->
+        _selectedTab,
+        combine(
+            monthViewModel.startMillis,
+            monthViewModel.endMillis
+        ) { start, end -> start to end },
+        combine(weekViewModel.startMillis, weekViewModel.endMillis) { start, end -> start to end },
+        combine(dayViewModel.startMillis, dayViewModel.endMillis) { start, end -> start to end }
+    ) { calendars, selectedTab, monthRange, weekRange, dayRange ->
         val selectedIds = calendars.filter { it.selected }.map { it.id }
+
+        val (start, end) = when (selectedTab) {
+            0 -> monthRange
+            1 -> weekRange
+            2 -> dayRange
+            else -> monthRange
+        }
+
         repository.getEventsForCalendars(context, selectedIds, start, end)
     }.stateIn(
         viewModelScope,

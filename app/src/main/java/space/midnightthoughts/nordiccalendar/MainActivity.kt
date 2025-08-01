@@ -294,7 +294,9 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
 
 
                     if (pagerState.currentPage < pagerState.pageCount - 1 || (pagerState.currentPage == pagerState.pageCount - 1 && hasPermissions.value)) Text(
-                        text = if (pagerState.currentPage == pagerState.pageCount - 1) "Finish" else "Next",
+                        text = if (pagerState.currentPage == pagerState.pageCount - 1) stringResource(
+                            R.string.onboarding_finish
+                        ) else stringResource(R.string.onboarding_next),
                         style = TextStyle(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal,

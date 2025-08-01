@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import space.midnightthoughts.nordiccalendar.R
 
 /**
  * NotificationReceiver is a BroadcastReceiver that receives alarm broadcasts for calendar event reminders
@@ -19,7 +20,8 @@ class NotificationReceiver : BroadcastReceiver() {
      */
     override fun onReceive(context: Context, intent: Intent) {
         val eventId = intent.getLongExtra("eventId", -1)
-        val eventTitle = intent.getStringExtra("eventTitle") ?: "Calendar event"
+        val eventTitle = intent.getStringExtra("eventTitle")
+            ?: context.getString(R.string.notification_default_title)
         val eventDescription = intent.getStringExtra("eventDescription")
         val eventTime = intent.getLongExtra("eventTime", 0L)
         val eventEndTime = intent.getLongExtra("eventEndTime", 0L)

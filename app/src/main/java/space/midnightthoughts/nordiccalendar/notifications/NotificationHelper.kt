@@ -27,16 +27,6 @@ object NotificationHelper {
     private const val CHANNEL_ID = "calendar_event_reminders"
 
     /**
-     * Notification channel name (displayed to the user).
-     */
-    private const val CHANNEL_NAME = "Calendar Reminders"
-
-    /**
-     * Notification channel description (displayed to the user).
-     */
-    private const val CHANNEL_DESC = "Notifications for calendar events with reminders"
-
-    /**
      * Shows a notification for a calendar event reminder.
      *
      * @param context The application context.
@@ -94,51 +84,55 @@ object NotificationHelper {
                     startCal.get(java.util.Calendar.DAY_OF_YEAR) == endCal.get(java.util.Calendar.DAY_OF_YEAR)
         val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
         val dateFormat = android.text.format.DateFormat.getDateFormat(context)
-        val timeText = if (sameDay) {
-            "${timeFormat.format(startCal.time)} — ${timeFormat.format(endCal.time)} $eventDescription"
-        } else {
-            "${dateFormat.format(startCal.time)} ${timeFormat.format(startCal.time)} — ${
-                dateFormat.format(
-                    endCal.time
-                )
-            } ${timeFormat.format(endCal.time)} $eventDescription"
-        }
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.outline_calendar_clock_24)
-            .setContentTitle(eventTitle)
-            .setContentText(timeText)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentTitle(eventTitle.ifEmpty { context.getString(R.string.notification_default_title) })
+            .setContentText(
+                if (sameDay) {
+                    "${timeFormat.format(startCal.time)} — ${timeFormat.format(endCal.time)} $eventDescription"
+                } else {
+                    "${dateFormat.format(startCal.time)} ${timeFormat.format(startCal.time)} — ${
+                        dateFormat.format(endCal.time)
+                    } ${timeFormat.format(endCal.time)} $eventDescription"
+                }
+            )
             .setContentIntent(pendingIntent)
-            .setCategory(CATEGORY_EVENT)
             .setAutoCancel(true)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setColor(ContextCompat.getColor(context, R.color.teal_700))
-        // Action for link or address
-        val location = eventLocation
-        if (android.util.Patterns.WEB_URL.matcher(location).matches()) {
-            val linkIntent = Intent(Intent.ACTION_VIEW, location.toUri())
-            val linkPendingIntent = PendingIntent.getActivity(
-                context,
-                (eventId + 1000).toInt(),
-                linkIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            .setCategory(CATEGORY_EVENT)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        if (eventLocation.isNotBlank()) {
+            try {
+                val mapsIntent = Intent(Intent.ACTION_VIEW, "geo:0,0?q=${eventLocation}".toUri())
+                val mapsPendingIntent = PendingIntent.getActivity(
+                    context,
+                    (eventId + 1000).toInt(),
+                    mapsIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                builder.addAction(
+                    0,
+                    context.getString(R.string.notification_action_open),
+                    pendingIntent
+                )
+                builder.addAction(
+                    0,
+                    context.getString(R.string.notification_action_show_route),
+                    mapsPendingIntent
+                )
+            } catch (e: Exception) {
+                builder.addAction(
+                    0,
+                    context.getString(R.string.notification_action_open),
+                    pendingIntent
+                )
+            }
+        } else {
+            builder.addAction(
+                0,
+                context.getString(R.string.notification_action_open),
+                pendingIntent
             )
-            builder.addAction(0, "Open", linkPendingIntent)
-        } else if (location.isNotBlank()) {
-            val mapsIntent = Intent(
-                Intent.ACTION_VIEW,
-                ("geo:0,0?q=" + java.net.URLEncoder.encode(
-                    location,
-                    "UTF-8"
-                )).toUri()
-            )
-            val mapsPendingIntent = PendingIntent.getActivity(
-                context,
-                (eventId + 2000).toInt(),
-                mapsIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.addAction(0, "Show route", mapsPendingIntent)
         }
 
         try {
@@ -148,7 +142,6 @@ object NotificationHelper {
             }
         } catch (e: SecurityException) {
             Log.e("NotificationHelper", "SecurityException: ${e.message}")
-            e.printStackTrace()
         }
     }
 
@@ -156,10 +149,10 @@ object NotificationHelper {
         Log.d("NotificationHelper", "Creating notification channel: $CHANNEL_ID")
         val channel = NotificationChannel(
             CHANNEL_ID,
-            CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_HIGH
+            context.getString(R.string.notification_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = CHANNEL_DESC
+            description = context.getString(R.string.notification_channel_desc)
         }
         val notificationManager: NotificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

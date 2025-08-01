@@ -41,6 +41,15 @@ import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
 
+/**
+ * MonthView displays a monthly calendar grid with days and events.
+ * It highlights the current day, shows a grid of days for the month, and displays up to three events per day as compact chips.
+ * If there are more than three events, a "+N more" chip is shown.
+ *
+ * @param modifier Modifier for styling and layout.
+ * @param navController NavController for navigation actions.
+ * @param calendarViewModel ViewModel providing calendar data and state.
+ */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +64,7 @@ fun MonthView(
     val zoneId = ZoneId.systemDefault()
     val firstDay = Instant.ofEpochMilli(startMillis).atZone(zoneId).toLocalDate()
     val daysInMonth = firstDay.lengthOfMonth()
-    // Wochenstart auf Montag (1=Montag, 7=Sonntag)
+    // Week starts on Monday (1=Monday, 7=Sunday)
     val firstDayOfWeek = 1
     val firstOfMonth = firstDay.withDayOfMonth(1)
     val firstOfMonthDayOfWeek = (firstOfMonth.dayOfWeek.value - firstDayOfWeek + 7) % 7
@@ -68,7 +77,7 @@ fun MonthView(
         Instant.ofEpochMilli(event.startTime).atZone(zoneId).toLocalDate()
     }
     Column(modifier) {
-        // Wochentagsnamen als Grid-Zeile
+        // Weekday names as grid row
         Row(Modifier.fillMaxWidth()) {
             val locale = Locale.getDefault()
             for (i in 0..6) {
@@ -85,7 +94,7 @@ fun MonthView(
                 }
             }
         }
-        // Monatsraster mit Linien (nur innere Linien)
+        // Month grid with lines (only inner lines)
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
             modifier = Modifier.fillMaxWidth(),
@@ -106,7 +115,7 @@ fun MonthView(
                             .fillMaxSize(),
                         verticalArrangement = Arrangement.Top
                     ) {
-                        // Tag-Nummer
+                        // Day number
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
@@ -133,7 +142,7 @@ fun MonthView(
                             )
                         }
                         Spacer(Modifier.size(2.dp))
-                        // Events als kompakte Chips
+                        // Events as compact chips
                         val maxEvents = 3
                         dayEvents.take(maxEvents).forEach { event ->
                             CompactChip(
@@ -152,7 +161,7 @@ fun MonthView(
                         }
                         if (dayEvents.size > maxEvents) {
                             CompactChip(
-                                text = "+${dayEvents.size - maxEvents} mehr",
+                                text = "+${dayEvents.size - maxEvents} more",
                                 backgroundColor = Color.Transparent,
                                 textColor = MaterialTheme.colorScheme.primary,
                                 center = true,
@@ -172,6 +181,16 @@ fun MonthView(
     }
 }
 
+/**
+ * CompactChip displays a small, rounded chip for an event or a "+N more" indicator in the month view.
+ *
+ * @param text The text to display inside the chip.
+ * @param backgroundColor The background color of the chip.
+ * @param textColor The text color.
+ * @param modifier Modifier for styling and layout.
+ * @param borderColor Optional border color for the chip.
+ * @param center If true, centers the text inside the chip.
+ */
 @Composable
 fun CompactChip(
     text: String,

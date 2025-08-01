@@ -1,5 +1,6 @@
 package space.midnightthoughts.nordiccalendar.components
 
+import Destinations
 import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,10 +27,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import kotlinx.coroutines.launch
-import space.midnightthoughts.nordiccalendar.Destinations
 import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.viewmodels.SidebarDrawerViewModel
 
+/**
+ * SidebarDrawer is a composable function that displays the app's navigation drawer.
+ * It provides navigation items for main destinations (calendar, settings, about) and a list of selectable calendars.
+ *
+ * The user can navigate between destinations and select which calendars are active.
+ *
+ * @param navController The NavController for navigation actions.
+ * @param selectedDestination The currently selected navigation destination.
+ * @param drawerState The DrawerState controlling the drawer's open/close state.
+ */
 @Composable
 fun SidebarDrawer(
     navController: NavController,

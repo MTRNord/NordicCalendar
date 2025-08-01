@@ -31,7 +31,19 @@ import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 
-
+/**
+ * DateRangeHeader is a composable function that displays a header with the current date range
+ * (month, week, or day) and navigation controls for moving to the previous/next period or jumping to today.
+ *
+ * The displayed range and navigation logic depend on the selectedTab:
+ *   0 = month view, 1 = week view, 2 = day view.
+ *
+ * @param selectedTab The currently selected tab (0=month, 1=week, 2=day).
+ * @param calendarViewModel The CalendarViewModel providing start and end millis for the range.
+ * @param onPrev Callback for navigating to the previous period.
+ * @param onNext Callback for navigating to the next period.
+ * @param onToday Callback for jumping to today.
+ */
 @Composable
 fun DateRangeHeader(
     selectedTab: Int,

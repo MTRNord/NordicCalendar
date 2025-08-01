@@ -27,23 +27,73 @@ import space.midnightthoughts.nordiccalendar.util.Reminder
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * CalendarRepository is a singleton class responsible for managing calendar data, events, and reminders.
+ * It provides flows for calendars and events, manages the selected time range, and handles synchronization
+ * with the Android calendar provider. It also manages scheduling and canceling reminders for events.
+ *
+ * @constructor Injects the application context for accessing system services and content providers.
+ */
 @Singleton
 class CalendarRepository @Inject constructor(@ApplicationContext context: Context) {
+    /**
+     * Holds the calendar data utility instance.
+     */
     private val calendarData = CalendarData()
 
+    /**
+     * StateFlow holding the list of all calendars.
+     */
     private val _calendarsFlow = MutableStateFlow<List<Calendar>>(emptyList())
+
+    /**
+     * Public read-only StateFlow for observing calendar list changes.
+     */
     val calendarsFlow: StateFlow<List<Calendar>> = _calendarsFlow.asStateFlow()
+
+    /**
+     * Coroutine scope for repository background operations.
+     */
     private val repoScope = CoroutineScope(Dispatchers.IO)
 
+    /**
+     * StateFlow holding the start time in milliseconds for the current event range.
+     */
     private val _startMillis = MutableStateFlow(System.currentTimeMillis())
+
+    /**
+     * Public read-only StateFlow for observing the start time.
+     */
     val startMillis: StateFlow<Long> = _startMillis.asStateFlow()
+
+    /**
+     * StateFlow holding the end time in milliseconds for the current event range.
+     */
     private val _endMillis = MutableStateFlow(System.currentTimeMillis())
+
+    /**
+     * Public read-only StateFlow for observing the end time.
+     */
     val endMillis: StateFlow<Long> = _endMillis.asStateFlow()
+
+    /**
+     * StateFlow holding the list of events for the selected calendars and time range.
+     */
     private val _eventsFlow = MutableStateFlow<List<Event>>(emptyList())
+
+    /**
+     * Public read-only StateFlow for observing event list changes.
+     */
     val eventsFlow: StateFlow<List<Event>> = _eventsFlow.asStateFlow()
 
+    /**
+     * ContentObserver for monitoring changes in the calendar provider.
+     */
     private var calendarContentObserver: ContentObserver? = null
 
+    /**
+     * Initializes the repository by loading calendars and setting up event synchronization.
+     */
     init {
         loadCalendarsToFlow(context)
         repoScope.launch {
@@ -56,6 +106,10 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
         }
     }
 
+    /**
+     * Loads all calendars from the system and updates the calendars flow.
+     * @param context The application context.
+     */
     private fun loadCalendarsToFlow(context: Context) {
         repoScope.launch {
             val calendars = getCalendars(context)
@@ -63,6 +117,11 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
         }
     }
 
+    /**
+     * Retrieves all calendars from the system and marks them as selected based on preferences.
+     * @param context The application context.
+     * @return List of Calendar objects.
+     */
     fun getCalendars(context: Context): List<Calendar> {
         val contentResolver = context.contentResolver
         val prefs = context.getSharedPreferences("calendar_prefs", Context.MODE_PRIVATE)
@@ -75,6 +134,12 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
         }
     }
 
+    /**
+     * Sets the selected state of a calendar and updates the preferences.
+     * @param context The application context.
+     * @param calendarId The ID of the calendar to update.
+     * @param selected The new selected state.
+     */
     fun setCalendarSelected(context: Context, calendarId: Long, selected: Boolean) {
         val prefs = context.getSharedPreferences("calendar_prefs", Context.MODE_PRIVATE)
         val selectedIds =
@@ -88,11 +153,24 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
         loadCalendarsToFlow(context)
     }
 
+    /**
+     * Sets the time range for event retrieval.
+     * @param startMillis The start time in milliseconds.
+     * @param endMillis The end time in milliseconds.
+     */
     fun setTimeRange(startMillis: Long, endMillis: Long) {
         _startMillis.value = startMillis
         _endMillis.value = endMillis
     }
 
+    /**
+     * Retrieves events for the specified calendars and time range.
+     * @param context The application context.
+     * @param calendarIds The list of calendar IDs.
+     * @param startMillis The start time in milliseconds.
+     * @param endMillis The end time in milliseconds.
+     * @return List of Event objects.
+     */
     fun getEventsForCalendars(
         context: Context,
         calendarIds: List<Long>,
@@ -106,10 +184,20 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
             endMillis
         )
 
+    /**
+     * Retrieves an event by its ID.
+     * @param context The application context.
+     * @param eventId The ID of the event to retrieve.
+     * @return The Event object, or null if not found.
+     */
     fun getEventById(context: Context, eventId: Long): Event? {
         return calendarData.getEventById(context.contentResolver, eventId)
     }
 
+    /**
+     * Refreshes the events flow by reloading events for the selected calendars.
+     * @param context The application context.
+     */
     fun refreshEvents(context: Context) {
         repoScope.launch {
             val calendars = getCalendars(context)
@@ -119,7 +207,12 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
         }
     }
 
-    // Liefert für eine Liste von Events alle Reminder (Vorlaufzeiten) als Map<EventId, List<Reminder>>
+    /**
+     * Returns a map of event IDs to their corresponding reminders (lead times).
+     * @param context The application context.
+     * @param events The list of events to retrieve reminders for.
+     * @return Map<EventId, List<Reminder>> containing the reminders for each event.
+     */
     fun getRemindersForEvents(
         context: Context,
         events: List<Event>
@@ -135,7 +228,9 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
     }
 
     /**
-     * Löscht alle Reminder-Alarme für die übergebenen Events.
+     * Cancels all reminder alarms for the given events.
+     * @param context The application context.
+     * @param events The list of events to cancel reminders for.
      */
     fun cancelRemindersForEvents(context: Context, events: List<Event>) {
         Log.d(
@@ -167,9 +262,11 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
     }
 
     /**
-     * Setzt für alle Events mit Reminder einen Alarm, der eine Benachrichtigung auslöst.
-     * Sollte nach jedem Laden der Events aufgerufen werden.
-     * Vorher werden alle bestehenden Reminder-Alarme für diese Events entfernt.
+     * Schedules reminder alarms for events with reminders.
+     * Should be called after loading events.
+     * Existing reminder alarms for these events are removed first.
+     * @param context The application context.
+     * @param events The list of events to schedule reminders for.
      */
     fun scheduleRemindersForEvents(context: Context, events: List<Event>) {
         Log.d(
@@ -243,8 +340,12 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
         }
     }
 
+    /**
+     * Registers a ContentObserver to listen for calendar provider changes.
+     * @param context The application context.
+     */
     fun registerCalendarContentObserver(context: Context) {
-        if (calendarContentObserver != null) return // Nur einmal registrieren
+        if (calendarContentObserver != null) return // Only register once
         val handler = Handler(Looper.getMainLooper())
         calendarContentObserver = object : ContentObserver(handler) {
             override fun onChange(selfChange: Boolean) {
@@ -270,6 +371,10 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
         )
     }
 
+    /**
+     * Unregisters the ContentObserver for calendar provider changes.
+     * @param context The application context.
+     */
     fun unregisterCalendarContentObserver(context: Context) {
         calendarContentObserver?.let {
             context.contentResolver.unregisterContentObserver(it)

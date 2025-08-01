@@ -26,6 +26,15 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import space.midnightthoughts.nordiccalendar.R
 
+/**
+ * Data class representing a single onboarding page.
+ *
+ * @property imageRes Optional image resource to display.
+ * @property titleRes String resource for the title.
+ * @property descriptionRes String resource for the description.
+ * @property permissionRequest List of permissions to request on this page.
+ * @property showPermissionRequest Whether to show the permission request UI.
+ */
 data class OnBoardModel(
     val imageRes: Int? = null,
     val titleRes: Int,
@@ -34,6 +43,9 @@ data class OnBoardModel(
     val showPermissionRequest: Boolean = false
 )
 
+/**
+ * List of onboarding data models, each representing a page in the onboarding flow.
+ */
 val onBoardingData = listOf(
     // Explain the purpose of the app
     OnBoardModel(
@@ -54,6 +66,13 @@ val onBoardingData = listOf(
     ),
 )
 
+/**
+ * Composable function that displays a single onboarding page.
+ * Handles permission requests if required by the page.
+ *
+ * @param page The OnBoardModel representing the current onboarding page.
+ * @param hasPermissions MutableState indicating if all required permissions are granted.
+ */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun OnBoardItem(page: OnBoardModel, hasPermissions: MutableState<Boolean>) {

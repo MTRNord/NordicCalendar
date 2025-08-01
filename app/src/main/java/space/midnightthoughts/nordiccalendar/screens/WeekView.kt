@@ -14,6 +14,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 
+/**
+ * WeekView displays a list of events for the current week.
+ * Each event is shown as a clickable text item that navigates to the event details view.
+ *
+ * @param modifier Modifier for styling and layout.
+ * @param navController NavController for navigation actions.
+ * @param calendarViewModel ViewModel providing calendar data and state.
+ */
 @Composable
 fun WeekView(
     modifier: Modifier = Modifier,

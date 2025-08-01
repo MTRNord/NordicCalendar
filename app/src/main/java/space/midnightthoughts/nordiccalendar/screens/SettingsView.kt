@@ -17,6 +17,12 @@ import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.components.AppScaffold
 import space.midnightthoughts.nordiccalendar.viewmodels.SettingsViewModel
 
+/**
+ * SettingsView displays the settings screen for the app, allowing the user to configure preferences.
+ * Uses a preference library to show editable fields, such as the Nominatim URL for geocoding.
+ *
+ * @param navController The NavHostController for navigation actions.
+ */
 @Composable
 fun SettingsView(navController: NavHostController) {
     val viewModel: SettingsViewModel = hiltViewModel()
@@ -34,6 +40,7 @@ fun SettingsView(navController: NavHostController) {
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Text field preference for the Nominatim geocoding service URL
                 textFieldPreference(
                     key = "nominatim_url",
                     defaultValue = "https://nominatim.openstreetmap.org/search",

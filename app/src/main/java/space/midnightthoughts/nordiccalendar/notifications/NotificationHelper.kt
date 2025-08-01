@@ -15,11 +15,38 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import space.midnightthoughts.nordiccalendar.R
 
+/**
+ * NotificationHelper is a utility object for managing and displaying event notifications.
+ * It handles notification channel creation, permission checks, and building notifications
+ * for calendar events with reminders.
+ */
 object NotificationHelper {
+    /**
+     * Notification channel ID for calendar event reminders.
+     */
     private const val CHANNEL_ID = "calendar_event_reminders"
-    private const val CHANNEL_NAME = "Kalender Erinnerungen"
-    private const val CHANNEL_DESC = "Benachrichtigungen für Kalender-Events mit Erinnerung"
 
+    /**
+     * Notification channel name (displayed to the user).
+     */
+    private const val CHANNEL_NAME = "Calendar Reminders"
+
+    /**
+     * Notification channel description (displayed to the user).
+     */
+    private const val CHANNEL_DESC = "Notifications for calendar events with reminders"
+
+    /**
+     * Shows a notification for a calendar event reminder.
+     *
+     * @param context The application context.
+     * @param eventId The ID of the event.
+     * @param eventTitle The title of the event.
+     * @param eventDescription The description of the event (optional).
+     * @param eventTime The start time of the event in milliseconds.
+     * @param eventEndTime The end time of the event in milliseconds.
+     * @param eventLocation The location of the event.
+     */
     fun showEventNotification(
         context: Context,
         eventId: Long,
@@ -34,7 +61,7 @@ object NotificationHelper {
             "showEventNotification: eventId=$eventId, eventTitle=$eventTitle, eventTime=$eventTime, eventDescription=$eventDescription, eventEndTime=$eventEndTime, eventLocation=$eventLocation"
         )
         createNotificationChannel(context)
-        // Prüfe Berechtigung für Benachrichtigungen (ab Android 13)
+        // Check notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     context,
@@ -45,11 +72,11 @@ object NotificationHelper {
                     "NotificationHelper",
                     "POST_NOTIFICATIONS permission not granted, notification not shown"
                 )
-                // Keine Berechtigung, Notification nicht anzeigen
+                // No permission, do not show notification
                 return
             }
         }
-        // Deep Link Intent für EventDetails
+        // Deep link intent for EventDetails
         val deepLinkUri = "nordiccalendar://eventdetails/$eventId".toUri()
         val intent = Intent(Intent.ACTION_VIEW, deepLinkUri).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -68,13 +95,13 @@ object NotificationHelper {
         val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
         val dateFormat = android.text.format.DateFormat.getDateFormat(context)
         val timeText = if (sameDay) {
-            "${timeFormat.format(startCal.time)} — ${timeFormat.format(endCal.time)} ${eventDescription}"
+            "${timeFormat.format(startCal.time)} — ${timeFormat.format(endCal.time)} $eventDescription"
         } else {
             "${dateFormat.format(startCal.time)} ${timeFormat.format(startCal.time)} — ${
                 dateFormat.format(
                     endCal.time
                 )
-            } ${timeFormat.format(endCal.time)} ${eventDescription}"
+            } ${timeFormat.format(endCal.time)} $eventDescription"
         }
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.outline_calendar_clock_24)
@@ -86,7 +113,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setColor(ContextCompat.getColor(context, R.color.teal_700))
-        // Action für Link oder Adresse
+        // Action for link or address
         val location = eventLocation
         if (android.util.Patterns.WEB_URL.matcher(location).matches()) {
             val linkIntent = Intent(Intent.ACTION_VIEW, location.toUri())
@@ -96,7 +123,7 @@ object NotificationHelper {
                 linkIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(0, "Öffnen", linkPendingIntent)
+            builder.addAction(0, "Open", linkPendingIntent)
         } else if (location.isNotBlank()) {
             val mapsIntent = Intent(
                 Intent.ACTION_VIEW,
@@ -111,7 +138,7 @@ object NotificationHelper {
                 mapsIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(0, "Route anzeigen", mapsPendingIntent)
+            builder.addAction(0, "Show route", mapsPendingIntent)
         }
 
         try {

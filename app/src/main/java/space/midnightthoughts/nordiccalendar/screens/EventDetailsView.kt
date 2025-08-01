@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -52,6 +53,8 @@ import dev.sargunv.maplibrecompose.compose.source.rememberGeoJsonSource
 import dev.sargunv.maplibrecompose.core.BaseStyle
 import dev.sargunv.maplibrecompose.core.CameraPosition
 import dev.sargunv.maplibrecompose.core.source.GeoJsonData
+import dev.sargunv.maplibrecompose.expressions.dsl.const
+import dev.sargunv.maplibrecompose.expressions.dsl.image
 import io.github.dellisd.spatialk.geojson.Feature
 import io.github.dellisd.spatialk.geojson.Point
 import io.github.dellisd.spatialk.geojson.Position
@@ -68,6 +71,13 @@ import java.util.Calendar
 import java.util.Date
 import kotlin.time.toKotlinDuration
 
+/**
+ * EventDetailsView displays the details of a calendar event, including title, time, duration,
+ * calendar, organizer, location (with map if available), and description. Handles navigation and back actions.
+ *
+ * @param backStackEntry The NavBackStackEntry for navigation arguments.
+ * @param navController The NavHostController for navigation actions.
+ */
 @Composable
 fun EventDetailsView(
     backStackEntry: NavBackStackEntry,
@@ -134,7 +144,7 @@ fun EventDetailsView(
 
     val tabArg = backStackEntry.arguments?.getInt("tab")
 
-    // Back-Handling: Wenn Tab-Argument vorhanden, gezielt zurück navigieren
+    // Back handling: If tab argument is present, navigate back to the specific tab
     val handleBack: () -> Unit = {
         if (tabArg != null) {
             navController.navigate("calendar?tab=$tabArg") {
@@ -154,7 +164,7 @@ fun EventDetailsView(
         ),
         selectedDestination = "eventDetails",
         navController = navController,
-        onBackClick = handleBack // <-- Back-Logik an AppScaffold übergeben
+        onBackClick = handleBack // <-- Pass back logic to AppScaffold
     ) { innerPadding ->
         SelectionContainer(modifier = innerPadding) {
             Column(
@@ -382,6 +392,13 @@ fun EventDetailsView(
     }
 }
 
+/**
+ * LocationMap displays a map centered on the given coordinate and bounding box, with a marker.
+ * Clicking the map opens the location in a routing app.
+ *
+ * @param coordinate The Position (latitude/longitude) to center the map and place the marker.
+ * @param boundingBox Optional BoundingBox to adjust the map zoom and center.
+ */
 @Composable
 fun LocationMap(coordinate: Position, boundingBox: BoundingBox?) {
     val shape = RoundedCornerShape(16.dp)
@@ -437,6 +454,11 @@ fun LocationMap(coordinate: Position, boundingBox: BoundingBox?) {
     }
 }
 
+/**
+ * MapContent adds a marker to the map at the given coordinate.
+ *
+ * @param coordinate The Position (latitude/longitude) for the marker.
+ */
 @Composable
 fun MapContent(
     coordinate: Position,
@@ -446,12 +468,13 @@ fun MapContent(
             Feature(Point(coordinates = coordinate))
         )
     )
+    val markerIcon = painterResource(R.drawable.outline_home_pin_24)
 
     SymbolLayer(
         id = "marker",
         source = marker,
-        //iconImage = "marker_icon", // Ensure you have a marker icon in your resources
-        //iconSize = 1.0f,
+        iconImage = image(markerIcon),
+        iconSize = const(1f)
     )
 
 }

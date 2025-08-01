@@ -27,6 +27,19 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import space.midnightthoughts.nordiccalendar.R
 
+/**
+ * AppScaffoldContent is a composable function that provides the main scaffold structure for the app,
+ * including a top app bar, optional back button, menu button, floating action button, and content area.
+ *
+ * @param title The title to display in the top app bar.
+ * @param isBackButtonVisible Whether the back button should be visible.
+ * @param navController The NavController for navigation actions.
+ * @param onBackClick Optional callback for back button click.
+ * @param floatingActionButton Optional composable for a floating action button.
+ * @param content The main content composable, receives a Modifier.
+ * @param onMenuClick Optional callback for menu button click.
+ * @param actions Optional composable for additional actions in the top app bar.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppScaffoldContent(
@@ -83,6 +96,18 @@ private fun AppScaffoldContent(
     }
 }
 
+/**
+ * AppScaffold is a composable function that provides the main scaffold and navigation drawer structure for the app.
+ * It automatically determines whether to show a navigation drawer or a back button based on the current destination.
+ *
+ * @param title The title to display in the top app bar (optional).
+ * @param selectedDestination The current navigation destination, used to determine drawer visibility.
+ * @param navController The NavController for navigation actions.
+ * @param floatingActionButton Optional composable for a floating action button.
+ * @param onBackClick Optional callback for back button click.
+ * @param actions Optional composable for additional actions in the top app bar.
+ * @param content The main content composable, receives a Modifier.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScaffold(

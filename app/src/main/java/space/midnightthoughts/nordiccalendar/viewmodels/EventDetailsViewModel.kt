@@ -39,21 +39,44 @@ data class NominatimResult(
 
 data class BoundingBox(val south: Double, val north: Double, val west: Double, val east: Double)
 
+/**
+ * EventDetailsViewModel is the ViewModel responsible for providing event details, location resolution,
+ * and bounding box data for the event details screen. It fetches event data, resolves locations using Nominatim,
+ * and exposes state flows for UI observation.
+ *
+ * @property context The application context injected by Hilt.
+ * @property repository The CalendarRepository for accessing event and calendar data.
+ * @property event StateFlow holding the current event details.
+ * @property locationPosition StateFlow holding the resolved geographic position for the event location.
+ * @property locationBoundingBox StateFlow holding the bounding box for the resolved location.
+ */
 @HiltViewModel
 class EventDetailsViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: CalendarRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    /**
+     * StateFlow holding the current event details.
+     */
     private val _event = MutableStateFlow<Event?>(null)
     val event: StateFlow<Event?> = _event.asStateFlow()
 
+    /**
+     * StateFlow holding the resolved geographic position for the event location.
+     */
     private val _locationPosition = MutableStateFlow<Position?>(null)
     val locationPosition: StateFlow<Position?> = _locationPosition.asStateFlow()
 
+    /**
+     * StateFlow holding the bounding box for the resolved location.
+     */
     private val _locationBoundingBox = MutableStateFlow<BoundingBox?>(null)
     val locationBoundingBox: StateFlow<BoundingBox?> = _locationBoundingBox.asStateFlow()
 
+    /**
+     * Ktor HTTP client for making network requests to Nominatim.
+     */
     private val ktorClient = HttpClient(Android) {
         install(ContentNegotiation) {
             json(
@@ -73,13 +96,16 @@ class EventDetailsViewModel @Inject constructor(
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) {
-                    android.util.Log.d("Ktor", message)
+                    Log.d("Ktor", message)
                 }
             }
             level = LogLevel.INFO
         }
     }
 
+    /**
+     * Initializes the ViewModel by loading the event details if an eventId is provided in the navigation arguments.
+     */
     init {
         val eventId = savedStateHandle.get<Long>("eventId")
         if (eventId != null) {
@@ -87,6 +113,11 @@ class EventDetailsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Loads the event details for the given eventId from the repository and updates the event state.
+     *
+     * @param eventId The ID of the event to load.
+     */
     private fun loadEvent(eventId: Long) {
         viewModelScope.launch {
             val event = repository.getEventById(context, eventId)
@@ -94,6 +125,13 @@ class EventDetailsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Resolves the geographic location for a given address using the Nominatim geocoding service.
+     * Updates the locationPosition and locationBoundingBox state flows with the result.
+     *
+     * @param address The address string to resolve.
+     * @param locale The locale/language to use for the geocoding request (default: "de").
+     */
     fun resolveLocation(address: String, locale: String = "de") {
         viewModelScope.launch {
             try {

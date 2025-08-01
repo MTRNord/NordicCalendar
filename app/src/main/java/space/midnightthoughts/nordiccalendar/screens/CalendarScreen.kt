@@ -32,6 +32,14 @@ import space.midnightthoughts.nordiccalendar.R
 import space.midnightthoughts.nordiccalendar.components.DateRangeHeader
 import space.midnightthoughts.nordiccalendar.viewmodels.CalendarViewModel
 
+/**
+ * CalendarScreen is the main composable for displaying the calendar view.
+ * It provides a tabbed interface for switching between month, week, and day views,
+ * supports pull-to-refresh, and displays the current date range and events.
+ *
+ * @param modifier Modifier for styling and layout.
+ * @param navController NavController for navigation actions.
+ */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,17 +47,35 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
     navController: NavController,
 ) {
+    /**
+     * ViewModel for calendar data and state.
+     */
     val calendarViewModel: CalendarViewModel = hiltViewModel()
+
+    /**
+     * State holding the list of events for the current view.
+     */
     val events = remember(calendarViewModel) {
         calendarViewModel.events
     }.collectAsState(initial = emptyList())
+
+    /**
+     * State indicating whether a refresh is in progress.
+     */
     val isRefreshing = remember(calendarViewModel) {
         calendarViewModel.isRefreshing
     }.collectAsState(initial = false)
+
+    /**
+     * State holding the currently selected tab (0=month, 1=week, 2=day).
+     */
     val selectedTab = remember(calendarViewModel) {
         calendarViewModel.selectedTab
     }.collectAsState(initial = 0)
 
+    /**
+     * State for pull-to-refresh gesture.
+     */
     val pullToRefreshState = rememberPullToRefreshState()
     PullToRefreshBox(
         state = pullToRefreshState,

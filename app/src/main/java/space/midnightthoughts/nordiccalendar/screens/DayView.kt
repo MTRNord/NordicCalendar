@@ -60,6 +60,13 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.PriorityQueue
 
+/**
+ * Assigns columns to events so that overlapping events are displayed side by side.
+ * Each event is assigned a column index and the total number of columns for its overlap group.
+ *
+ * @param events List of events to assign columns to.
+ * @return List of Triple<Event, columnIndex, maxColumns> for layout.
+ */
 private fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
     data class ActiveEvent(val endTime: Long, val col: Int)
 
@@ -70,7 +77,7 @@ private fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
     var maxColumns = 0
 
     for (event in sorted) {
-        // Entferne abgelaufene Events und gib deren Spalten frei
+        // Remove expired events and free their columns
         while (active.isNotEmpty() && active.peek()?.endTime!! <= event.startTime) {
             freeColumns.add(active.poll()?.col)
         }
@@ -82,6 +89,14 @@ private fun assignColumns(events: List<Event>): List<Triple<Event, Int, Int>> {
     return result
 }
 
+/**
+ * Displays the hour grid for a day, with time labels and horizontal dividers for each hour.
+ *
+ * @param dayStart Start time of the day in milliseconds.
+ * @param hourHeightDp Height of each hour row in dp.
+ * @param timeColumnWidth Width of the time label column in dp.
+ * @param hourFormat DateTimeFormatter for the hour labels.
+ */
 @Composable
 private fun HourLines(
     dayStart: Long,
@@ -111,6 +126,15 @@ private fun HourLines(
     }
 }
 
+/**
+ * Displays a red bar indicating the current time ("now") on the day view.
+ * The bar is only shown if the current time is within the visible range.
+ *
+ * @param nowOffsetY Vertical offset in pixels for the bar position.
+ * @param hourHeightPx Height of one hour in pixels.
+ * @param now Current time in milliseconds.
+ * @param hourFormat Formatter for displaying the time label.
+ */
 @Composable
 private fun NowBar(
     nowOffsetY: Float,
@@ -167,6 +191,14 @@ private fun NowBar(
     }
 }
 
+/**
+ * Main composable for displaying the day view of the calendar.
+ * Shows a scrollable list of hours, events, and a bar for the current time.
+ *
+ * @param modifier Modifier for styling and layout.
+ * @param navController NavController for navigation actions.
+ * @param calendarViewModel ViewModel providing calendar data and state.
+ */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun DayView(
@@ -213,7 +245,7 @@ fun DayView(
         ) {
             val maxWidthPx = with(density) { maxWidth.toPx() }
 
-            // Stundenraster
+            // Hour grid
             HourLines(
                 dayStart = dayStart.value,
                 hourHeightDp = hourHeightDp,
@@ -221,7 +253,7 @@ fun DayView(
                 hourFormat = hourFormat
             )
 
-            // Events (wie gehabt, optimiert)
+            // Events (optimized as before)
             val eventColumns = remember(events.value, maxWidthPx) { assignColumns(events.value) }
             events.value.forEach { event ->
                 val triple =
@@ -241,10 +273,14 @@ fun DayView(
                     val minCardHeightDp = 60.dp
                     val isCompact = with(density) { eventHeightPx.toDp() } < minCardHeightDp
 
+                    // Whether the event starts before the visible day (no top corners)
                     val noTopCorners = event.startTime < dayStart.value
+                    // Whether the event ends after the visible day (no bottom corners)
                     val noBottomCorners = event.endTime > dayEnd.value
 
+                    // Show start time as midnight if event starts at the beginning of the day
                     val showStartTimeAsMidnight = shownStart == dayStart.value
+                    // Show end time as midnight if event ends at the end of the day
                     val showEndTimeAsMidnight = shownEnd == dayEnd.value
 
                     key(event.eventId, event.calendar.id) {
@@ -277,7 +313,7 @@ fun DayView(
                 }
             }
 
-            // Jetzt-Linie (optimiert als eigene Composable)
+            // Now bar (optimized as its own composable)
             NowBar(
                 nowOffsetY = nowOffsetY,
                 hourHeightPx = hourHeightPx,
@@ -288,7 +324,22 @@ fun DayView(
     }
 }
 
-
+/**
+ * Card composable for displaying a single event in the day view.
+ * Handles compact and expanded layouts, corner rounding, and click actions.
+ *
+ * @param event The event to display.
+ * @param isCompact Whether to use a compact layout (for short events).
+ * @param modifier Modifier for styling and layout.
+ * @param onClick Optional callback for click actions.
+ * @param index Index of the event (for accessibility semantics).
+ * @param noBottomCorners If true, bottom corners are not rounded.
+ * @param noTopCorners If true, top corners are not rounded.
+ * @param showStartTimeAsMidnight If true, show start time as "00:00".
+ * @param showEndTimeAsMidnight If true, show end time as "24:00".
+ * @param eventStartOverride Optional override for the event start time.
+ * @param eventEndOverride Optional override for the event end time.
+ */
 @Composable
 private fun EventCard(
     event: Event,

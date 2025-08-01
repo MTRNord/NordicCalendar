@@ -51,6 +51,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import dagger.hilt.android.AndroidEntryPoint
@@ -64,16 +65,35 @@ import space.midnightthoughts.nordiccalendar.screens.SettingsView
 import space.midnightthoughts.nordiccalendar.ui.theme.NordicCalendarTheme
 import space.midnightthoughts.nordiccalendar.util.OnboardingPrefs
 
+/**
+ * Destinations for the app's navigation.
+ */
 sealed class Destinations(val route: String) {
     object Intro : Destinations("intro")
-    object Calendar : Destinations("calendar?tab={tab}") // Route mit optionalem Tab-Argument
+
+    /**
+     * Calendar destination with optional parameters for tab and date.
+     * @param tab The index of the selected tab (default is 0).
+     * @param date The date to display in the calendar (optional).
+     */
+    object Calendar : Destinations("calendar?tab={tab}")
     object Settings : Destinations("settings")
     object About : Destinations("about")
     object EventDetails : Destinations("eventDetails/{eventId}")
 }
 
+/**
+ * MainActivity is the entry point of the Nordic Calendar app.
+ * It sets up the navigation and UI components, including onboarding and calendar views.
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    /**
+     * onCreate is called when the activity is created.
+     * It initializes the UI and sets up navigation.
+     *
+     * @param savedInstanceState The saved instance state bundle.
+     */
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,7 +186,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             ),
                             deepLinks = listOf(
-                                androidx.navigation.NavDeepLink("nordiccalendar://eventdetails/{eventId}")
+                                navDeepLink {
+                                    uriPattern = "nordiccalendar://eventdetails/{eventId}"
+                                }
                             )
                         ) { backStackEntry ->
                             EventDetailsView(
@@ -192,7 +214,13 @@ class MainActivity : ComponentActivity() {
 
 }
 
-// Pass Navigation Actions: Create a function to handle navigation and pass it to screens.
+/**
+ * IntroScreen displays the onboarding screens for the app.
+ * It allows users to navigate through the onboarding items and finish the onboarding process.
+ *
+ * @param navController The NavHostController for navigation actions.
+ * @param onFinish Optional callback when the user finishes the onboarding.
+ */
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null) {
@@ -293,6 +321,12 @@ fun IntroScreen(navController: NavHostController, onFinish: (() -> Unit)? = null
     }
 }
 
+/**
+ * CalendarView displays the main calendar screen with a floating action button to add events.
+ * It uses the CalendarScreen composable to render the calendar UI.
+ *
+ * @param navController The NavHostController for navigation actions.
+ */
 @Composable
 fun CalendarView(
     navController: NavHostController
@@ -326,6 +360,12 @@ fun CalendarView(
     }
 }
 
+/**
+ * AboutView displays information about the app and its version.
+ * It provides a simple text view with the app name and version.
+ *
+ * @param navController The NavHostController for navigation actions.
+ */
 @Composable
 fun AboutView(navController: NavHostController) {
 

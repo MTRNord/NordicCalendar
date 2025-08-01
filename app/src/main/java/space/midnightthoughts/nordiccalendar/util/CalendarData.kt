@@ -6,6 +6,18 @@ import android.net.Uri
 import android.provider.CalendarContract
 import android.util.Log
 
+/**
+ * Data class representing a calendar.
+ *
+ * @property id The unique ID of the calendar.
+ * @property name The display name of the calendar.
+ * @property color The color of the calendar.
+ * @property accountName The account name associated with the calendar.
+ * @property accountType The account type associated with the calendar.
+ * @property syncEvents Whether the calendar is set to sync events.
+ * @property visible Whether the calendar is visible.
+ * @property selected Whether the calendar is selected (default: true).
+ */
 data class Calendar(
     val id: Long,
     val name: String,
@@ -18,12 +30,38 @@ data class Calendar(
     val selected: Boolean = true
 )
 
+/**
+ * Data class representing an event in the calendar.
+ *
+ * @property title The title of the event.
+ * @property description A description of the event.
+ * @property location The location of the event.
+ * @property eventColor The color of the event.
+ * @property status The status of the event (e.g., confirmed, tentative, canceled).
+ * @property selfAttendeeStatus The attendee status of the self (e.g., accepted, declined).
+ * @property duration The duration of the event.
+ * @property eventTimezone The timezone of the event.
+ * @property eventEndTimezone The timezone of the event's end time.
+ * @property allDay Whether the event lasts all day.
+ * @property accessLevel The access level for the event.
+ * @property availability The availability status of the event.
+ * @property hasAlarm Whether the event has an alarm.
+ * @property eventId The unique ID of the event.
+ * @property startTime The start time of the event in milliseconds.
+ * @property endTime The end time of the event in milliseconds.
+ * @property calendarId The ID of the calendar that the event belongs to.
+ * @property organizer The organizer of the event.
+ * @property attendees A list of attendees for the event.
+ * @property calendar A reference to the calendar this event belongs to.
+ */
 data class Event(
     val title: String,
     val description: String?,
     val location: String?,
     val eventColor: Long,
-    /// One of STATUS_TENTATIVE, STATUS_CONFIRMED, STATUS_CANCELED
+    /**
+     * One of STATUS_TENTATIVE, STATUS_CONFIRMED, STATUS_CANCELED
+     */
     val status: Int,
     val selfAttendeeStatus: Int,
     val duration: String?,
@@ -39,16 +77,29 @@ data class Event(
     val calendarId: Long,
     val organizer: String?,
     val attendees: List<String> = emptyList(),
-    // Reference to the calendar this event belongs to
+    /**
+     * Reference to the calendar this event belongs to
+     */
     val calendar: Calendar
 )
 
-// Reminder-Datenklasse
+/**
+ * Data class representing a reminder for an event.
+ *
+ * @property minutes The number of minutes before the event when the reminder should trigger.
+ * @property method The method used for the reminder (e.g., alert, email).
+ */
 data class Reminder(val minutes: Int, val method: Int)
 
-// Helper for the android calendar provider/CalendarContract
+/**
+ * Helper class for interacting with the Android calendar provider/CalendarContract.
+ * Provides methods for querying calendars, events, and reminders.
+ */
 class CalendarData {
 
+    /**
+     * Projection array for querying event instances from the calendar provider.
+     */
     val INSTANCE_PROJECTION = arrayOf(
         CalendarContract.Instances.CALENDAR_ID,
         CalendarContract.Instances.TITLE,
@@ -88,7 +139,9 @@ class CalendarData {
     val PROJECTION_END_INDEX = 16
     val PROJECTION_ORGANIZER_INDEX = 17
 
-    // Get available calendars from the Android Calendar Provider
+    /**
+     * Get available calendars from the Android Calendar Provider
+     */
     fun getCalendars(contentResolver: ContentResolver): List<Calendar> {
         val calendars = mutableListOf<Calendar>()
 
@@ -148,6 +201,15 @@ class CalendarData {
         return calendars
     }
 
+    /**
+     * Get events for a specific calendar within a given time range.
+     *
+     * @param contentResolver The content resolver to access the calendar provider.
+     * @param calendarId The ID of the calendar to fetch events from.
+     * @param startMillis The start of the time range in milliseconds (default: start of the week).
+     * @param endMillis The end of the time range in milliseconds (default: end of the week).
+     * @return A list of events occurring in the specified calendar and time range.
+     */
     fun getEventsForCalendar(
         contentResolver: ContentResolver,
         calendarId: Long,
@@ -240,6 +302,15 @@ class CalendarData {
         return events
     }
 
+    /**
+     * Get events for multiple calendars within a given time range.
+     *
+     * @param contentResolver The content resolver to access the calendar provider.
+     * @param calendarIds A list of calendar IDs to fetch events from.
+     * @param startMillis The start of the time range in milliseconds (default: start of the week).
+     * @param endMillis The end of the time range in milliseconds (default: end of the week).
+     * @return A list of events occurring in the specified calendars and time range.
+     */
     fun getEventsForCalendars(
         contentResolver: ContentResolver,
         calendarIds: List<Long>,
@@ -297,6 +368,13 @@ class CalendarData {
         }
     }
 
+    /**
+     * Get a specific event by its ID.
+     *
+     * @param contentResolver The content resolver to access the calendar provider.
+     * @param eventId The ID of the event to fetch.
+     * @return The event with the specified ID, or null if not found.
+     */
     fun getEventById(contentResolver: ContentResolver, eventId: Long): Event? {
         val selection = "Instances.event_id = ?"
         val selectionArgs = arrayOf(eventId.toString())
@@ -353,7 +431,13 @@ class CalendarData {
         return event
     }
 
-    // Liefert alle Reminder (Vorlaufzeiten in Minuten) für ein Event
+    /**
+     * Get all reminders (in minutes) for an event.
+     *
+     * @param contentResolver The content resolver to access the calendar provider.
+     * @param eventId The ID of the event to fetch reminders for.
+     * @return A list of reminders for the specified event.
+     */
     fun getRemindersForEvent(contentResolver: ContentResolver, eventId: Long): List<Reminder> {
         val reminders = mutableListOf<Reminder>()
         val projection = arrayOf(

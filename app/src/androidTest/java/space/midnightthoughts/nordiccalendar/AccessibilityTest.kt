@@ -62,6 +62,7 @@ class AccessibilityTest {
             Thread.sleep(1000)
         } catch (e: Exception) {
             // If navigation fails, just test the current screen
+            e.printStackTrace()
         }
 
         // Perform accessibility checks

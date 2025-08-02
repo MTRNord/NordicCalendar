@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Grant permissions automatically for tests -->
+    <uses-permission android:name="android.permission.READ_CALENDAR"
+        android:protectionLevel="dangerous" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR"
+        android:protectionLevel="dangerous" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Instrumentation for tests -->
+    <instrumentation
+        android:name="androidx.test.runner.AndroidJUnitRunner"
+        android:targetPackage="space.midnightthoughts.nordiccalendar" />
+
+</manifest>
+

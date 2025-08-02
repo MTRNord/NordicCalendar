@@ -14,11 +14,13 @@ import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import space.midnightthoughts.nordiccalendar.notifications.NotificationReceiver
 import space.midnightthoughts.nordiccalendar.util.Calendar
 import space.midnightthoughts.nordiccalendar.util.CalendarData
@@ -35,7 +37,7 @@ import javax.inject.Singleton
  * @constructor Injects the application context for accessing system services and content providers.
  */
 @Singleton
-class CalendarRepository @Inject constructor(@ApplicationContext context: Context) {
+class CalendarRepository @Inject constructor(@param:ApplicationContext private val context: Context) {
     /**
      * Holds the calendar data utility instance.
      */
@@ -183,6 +185,26 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
             startMillis,
             endMillis
         )
+
+    /**
+     * Asynchronous version of getEventsForCalendars that returns a Flow.
+     * This prevents blocking the main thread during database operations.
+     */
+    fun getEventsForCalendarsAsync(
+        calendarIds: List<Long>,
+        startMillis: Long,
+        endMillis: Long
+    ): Flow<List<Event>> = kotlinx.coroutines.flow.flow {
+        val events = withContext(Dispatchers.IO) {
+            calendarData.getEventsForCalendars(
+                context.contentResolver, // Fixed: Use injected context
+                calendarIds,
+                startMillis,
+                endMillis
+            )
+        }
+        emit(events)
+    }
 
     /**
      * Retrieves an event by its ID.
@@ -334,41 +356,93 @@ class CalendarRepository @Inject constructor(@ApplicationContext context: Contex
                         )
                     }
                 } catch (e: SecurityException) {
-                    e.printStackTrace()
+                    Log.e(
+                        "CalendarRepository",
+                        "SecurityException while scheduling alarm for event ${event.eventId}: ${e.message}",
+                        e
+                    )
+                } catch (e: Exception) {
+                    Log.e(
+                        "CalendarRepository",
+                        "Unexpected error while scheduling alarm for event ${event.eventId}: ${e.message}",
+                        e
+                    )
                 }
             }
         }
     }
 
     /**
+     * Asynchronous version of scheduleRemindersForEvents.
+     */
+    suspend fun scheduleRemindersForEventsAsync(events: List<Event>) {
+        withContext(Dispatchers.IO) {
+            scheduleRemindersForEvents(context, events)
+        }
+    }
+
+    /**
      * Registers a ContentObserver to listen for calendar provider changes.
+     * Uses a background thread for better performance.
      * @param context The application context.
      */
     fun registerCalendarContentObserver(context: Context) {
         if (calendarContentObserver != null) return // Only register once
-        val handler = Handler(Looper.getMainLooper())
-        calendarContentObserver = object : ContentObserver(handler) {
+
+        // Use IO thread instead of main thread for ContentObserver
+        val backgroundHandler = Handler(Looper.getMainLooper().let {
+            val backgroundThread = android.os.HandlerThread("CalendarObserver").apply { start() }
+            backgroundThread.looper
+        })
+
+        calendarContentObserver = object : ContentObserver(backgroundHandler) {
             override fun onChange(selfChange: Boolean) {
                 super.onChange(selfChange)
-                refreshEvents(context)
+                Log.d("CalendarRepository", "Calendar data changed, refreshing events")
+                // Use coroutine scope to avoid blocking the observer thread
+                repoScope.launch {
+                    try {
+                        refreshEvents(context)
+                    } catch (e: Exception) {
+                        Log.e(
+                            "CalendarRepository",
+                            "Error refreshing events after calendar change",
+                            e
+                        )
+                    }
+                }
             }
         }
+
         val cr = context.contentResolver
-        cr.registerContentObserver(
-            CalendarContract.Events.CONTENT_URI,
-            true,
-            calendarContentObserver!!
-        )
-        cr.registerContentObserver(
-            CalendarContract.Instances.CONTENT_URI,
-            true,
-            calendarContentObserver!!
-        )
-        cr.registerContentObserver(
-            CalendarContract.Reminders.CONTENT_URI,
-            true,
-            calendarContentObserver!!
-        )
+        try {
+            cr.registerContentObserver(
+                CalendarContract.Events.CONTENT_URI,
+                true,
+                calendarContentObserver!!
+            )
+            cr.registerContentObserver(
+                CalendarContract.Instances.CONTENT_URI,
+                true,
+                calendarContentObserver!!
+            )
+            cr.registerContentObserver(
+                CalendarContract.Reminders.CONTENT_URI,
+                true,
+                calendarContentObserver!!
+            )
+            Log.d("CalendarRepository", "Calendar ContentObserver registered successfully")
+        } catch (e: SecurityException) {
+            Log.e(
+                "CalendarRepository",
+                "Failed to register ContentObserver due to security exception",
+                e
+            )
+            calendarContentObserver = null
+        } catch (e: Exception) {
+            Log.e("CalendarRepository", "Failed to register ContentObserver", e)
+            calendarContentObserver = null
+        }
     }
 
     /**

@@ -16,7 +16,7 @@ jobs:
           java-version: '17'
       - name: Decode Keystore
         run: |
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > release.jks
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > app/release.jks
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
       - name: Build APK & AAB (signed)

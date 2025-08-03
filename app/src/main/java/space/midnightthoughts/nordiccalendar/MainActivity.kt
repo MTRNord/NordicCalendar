@@ -102,6 +102,7 @@ class MainActivity : ComponentActivity() {
         } catch (_: PackageManager.NameNotFoundException) {
             "0.1.0-exp"
         }
+        //OnboardingPrefs.resetOnboarding(this) // Reset onboarding for testing purposes
         val showOnboarding = OnboardingPrefs.isOnboardingNeeded(this, currentVersion)
 
         val navigateToEventId = intent.getLongExtra("navigateToEventId", -1)
@@ -110,7 +111,6 @@ class MainActivity : ComponentActivity() {
             NordicCalendarTheme {
                 val navController = rememberNavController()
 
-                // TODO: Recheck calendar permissions and show dialog if not granted
                 val permissionsState = rememberMultiplePermissionsState(
                     listOf(
                         android.Manifest.permission.READ_CALENDAR,
@@ -118,11 +118,18 @@ class MainActivity : ComponentActivity() {
                     ),
                 )
 
-                if (!permissionsState.allPermissionsGranted) {
+                if (!permissionsState.allPermissionsGranted && !showOnboarding) {
                     LaunchedEffect(Unit) {
                         permissionsState.launchMultiplePermissionRequest()
                     }
                 } else {
+                    // Initialize calendar services when permissions are granted
+                    LaunchedEffect(permissionsState.allPermissionsGranted) {
+                        if (!showOnboarding) {
+                            (application as NordicCalendarApp).initializeCalendarServices()
+                        }
+                    }
+
                     LaunchedEffect(navigateToEventId) {
                         if (navigateToEventId > 0) {
                             navController.navigate("eventDetails/$navigateToEventId")
@@ -148,6 +155,8 @@ class MainActivity : ComponentActivity() {
                         composable(Destinations.Intro.route) {
                             IntroScreen(navController) { // Callback nach Abschluss
                                 OnboardingPrefs.setOnboardingDone(this@MainActivity, currentVersion)
+                                // Initialize calendar services after onboarding completion
+                                (application as NordicCalendarApp).initializeCalendarServices()
                                 navController.navigate(Destinations.Calendar.route) {
                                     popUpTo(Destinations.Intro.route) {
                                         inclusive = true

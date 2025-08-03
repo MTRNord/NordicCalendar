@@ -94,17 +94,38 @@ class CalendarRepository @Inject constructor(@param:ApplicationContext private v
     private var calendarContentObserver: ContentObserver? = null
 
     /**
-     * Initializes the repository by loading calendars and setting up event synchronization.
+     * Tracks whether the repository has been initialized with calendar data.
      */
-    init {
-        loadCalendarsToFlow(context)
-        repoScope.launch {
-            combine(_calendarsFlow, _startMillis, _endMillis) { calendars, start, end ->
-                val selectedIds = calendars.filter { it.selected }.map { it.id }
-                getEventsForCalendars(context, selectedIds, start, end)
-            }.collect { events ->
-                _eventsFlow.value = events
+    private var isInitialized = false
+
+    /**
+     * Initializes the repository by loading calendars and setting up event synchronization.
+     * This should only be called after calendar permissions are granted.
+     */
+    fun initialize() {
+        if (isInitialized) {
+            Log.d("CalendarRepository", "Repository already initialized")
+            return
+        }
+
+        try {
+            loadCalendarsToFlow(context)
+            repoScope.launch {
+                combine(_calendarsFlow, _startMillis, _endMillis) { calendars, start, end ->
+                    val selectedIds = calendars.filter { it.selected }.map { it.id }
+                    getEventsForCalendars(context, selectedIds, start, end)
+                }.collect { events ->
+                    _eventsFlow.value = events
+                }
             }
+            isInitialized = true
+            Log.d("CalendarRepository", "Repository initialized successfully")
+        } catch (e: SecurityException) {
+            Log.e("CalendarRepository", "SecurityException during initialization", e)
+            throw e
+        } catch (e: Exception) {
+            Log.e("CalendarRepository", "Error during repository initialization", e)
+            throw e
         }
     }
 

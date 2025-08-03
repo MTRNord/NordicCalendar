@@ -24,6 +24,8 @@ workRuntimeKtxVersion = "2.10.3"
 hiltCommonVersion = "1.2.0"
 hiltWorkVersion = "1.2.0"
 uiautomatorVersion = "2.3.0"
+robolectricVersion = "4.15"
+testCoreVersion = "1.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -62,6 +64,8 @@ androidx-hilt-common = { group = "androidx.hilt", name = "hilt-common", version.
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWorkVersion" }
 google-hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomatorVersion" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectricVersion" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "testCoreVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
